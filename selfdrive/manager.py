@@ -134,7 +134,7 @@ managed_processes = {
   "proclogd": ("selfdrive/proclogd", ["./proclogd"]),
   "boardd": ("selfdrive/boardd", ["./boardd"]),   # not used directly
   "pandad": "selfdrive.pandad",
-  "ui": ("selfdrive/ui", ["./ui"]),
+  "ui": ("selfdrive/ui", ["./start.py"]),
   "calibrationd": "selfdrive.locationd.calibrationd",
   "paramsd": ("selfdrive/locationd", ["./paramsd"]),
   "camerad": ("selfdrive/camerad", ["./camerad"]),
@@ -143,6 +143,7 @@ managed_processes = {
   "updated": "selfdrive.updated",
   "monitoringd": ("selfdrive/modeld", ["./monitoringd"]),
   "modeld": ("selfdrive/modeld", ["./modeld"]),
+  "shutdownd": "selfdrive.shutdownd",
 }
 daemon_processes = {
   "manage_athenad": ("selfdrive.athena.manage_athenad", "AthenadPid"),
@@ -169,6 +170,7 @@ persistent_processes = [
   'uploader',
   'ui',
   'updated',
+  'shutdownd',
 ]
 
 car_started_processes = [

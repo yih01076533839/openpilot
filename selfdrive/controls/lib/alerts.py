@@ -58,6 +58,20 @@ class Alert():
 
 
 ALERTS = [
+  Alert(
+      "turningIndicatorOn",
+      "Steer Unavailable while Turning",
+      "TAKE CONTROL",
+      AlertStatus.userPrompt, AlertSize.small,
+      Priority.MID, VisualAlert.steerRequired, AudibleAlert.chimeWarning1, 0., 0., 1.),
+
+  Alert(
+      "lkasButtonOff",
+      "LKAS button off",
+      "",
+      AlertStatus.userPrompt, AlertSize.small,
+      Priority.HIGH, VisualAlert.steerRequired, AudibleAlert.none, 0., 0., .2),
+
   # Miscellaneous alerts
   Alert(
       "enable",
@@ -85,7 +99,7 @@ ALERTS = [
       "TAKE CONTROL",
       "Turn Exceeds Steering Limit",
       AlertStatus.userPrompt, AlertSize.mid,
-      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.chimePrompt, 1., 2., 3.),
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, 1., 2., 3.),
 
   Alert(
       "steerTempUnavailable",
@@ -102,11 +116,25 @@ ALERTS = [
       Priority.LOW, VisualAlert.none, AudibleAlert.none, .2, .2, .2),
 
   Alert(
+      "manualSteeringRequired",
+      "STEERING REQUIRED: Lane Keeping OFF",
+      "",
+      AlertStatus.normal, AlertSize.small,
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .0, .1, .1, alert_rate=0.25),
+
+  Alert(
+      "manualSteeringRequiredBlinkersOn",
+      "STEERING REQUIRED: Blinkers ON",
+      "",
+      AlertStatus.normal, AlertSize.small,
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .0, .1, .1, alert_rate=0.25),
+
+  Alert(
       "preDriverDistracted",
       "KEEP EYES ON ROAD: User Appears Distracted",
       "",
       AlertStatus.normal, AlertSize.small,
-      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, .0, .1, .1, alert_rate=0.75),
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .0, .1, .1, alert_rate=0.75),
 
   Alert(
       "promptDriverDistracted",
@@ -169,7 +197,7 @@ ALERTS = [
       "Be ready to take over at any time",
       "Always keep hands on wheel and eyes on road",
       AlertStatus.normal, AlertSize.mid,
-      Priority.LOW_LOWEST, VisualAlert.none, AudibleAlert.none, 0., 0., 15.),
+      Priority.LOW_LOWEST, VisualAlert.none, AudibleAlert.none, 0., 0., 7.),
 
   Alert(
       "startupNoControl",
@@ -215,10 +243,10 @@ ALERTS = [
 
   Alert(
       "belowSteerSpeed",
-      "TAKE CONTROL",
+      "",
       "Steer Unavailable Below ",
       AlertStatus.userPrompt, AlertSize.mid,
-      Priority.MID, VisualAlert.steerRequired, AudibleAlert.none, 0., 0.4, .3),
+      Priority.MID, VisualAlert.none, AudibleAlert.none, 0., 0.4, .3),
 
   Alert(
       "debugAlert",
@@ -231,21 +259,42 @@ ALERTS = [
       "Steer Left to Start Lane Change",
       "Monitor Other Vehicles",
       AlertStatus.normal, AlertSize.mid,
-      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, .0, .1, .1, alert_rate=0.75),
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .0, .1, .1, alert_rate=0.75),
 
   Alert(
       "preLaneChangeRight",
       "Steer Right to Start Lane Change",
       "Monitor Other Vehicles",
       AlertStatus.normal, AlertSize.mid,
-      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, .0, .1, .1, alert_rate=0.75),
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .0, .1, .1, alert_rate=0.75),
 
   Alert(
       "laneChange",
       "Changing Lane",
       "Monitor Other Vehicles",
       AlertStatus.normal, AlertSize.mid,
-      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, .0, .1, .1),
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .0, .1, .1),
+
+    Alert(
+      "rightLCAbsm",
+      "Vehicle in Right Lane",
+      "Waiting for Lane to be clear",
+      AlertStatus.userPrompt, AlertSize.mid,
+      Priority.MID, VisualAlert.steerRequired, AudibleAlert.none, 0., 0.4, .3),
+
+  Alert(
+      "leftLCAbsm",
+      "Vehicle in Left Lane",
+      "Waiting for Lane to be clear",
+      AlertStatus.userPrompt, AlertSize.mid,
+      Priority.MID, VisualAlert.steerRequired, AudibleAlert.none, 0., 0.4, .3),
+
+  Alert(
+      "preventLCA",
+      "TAKE CONTROL",
+      "Lane Change Cancelled, Lane Unsafe",
+      AlertStatus.critical, AlertSize.full,
+      Priority.HIGH, VisualAlert.none, AudibleAlert.chimeWarningRepeat, .4, 3., 3.,),
 
   Alert(
       "posenetInvalid",
@@ -473,7 +522,7 @@ ALERTS = [
       "TAKE CONTROL IMMEDIATELY",
       "Reverse Gear",
       AlertStatus.critical, AlertSize.full,
-      Priority.HIGHEST, VisualAlert.steerRequired, AudibleAlert.chimeWarningRepeat, 2.2, 3., 4.),
+      Priority.HIGHEST, VisualAlert.none, AudibleAlert.none, 2.2, 3., 4.),
 
   Alert(
       "cruiseDisabled",
