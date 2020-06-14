@@ -223,7 +223,7 @@ class CarInterface(CarInterfaceBase):
                                                                      else 2 if 1056 in fingerprint[2] else -1
     ret.autoLcaEnabled = 0
 
-    ret.radarOffCan = False
+    ret.radarOffCan = True
     ret.openpilotLongitudinalControl = True #TODO make ui toggle
     ret.enableCruise = not ret.radarOffCan
     ret.autoLcaEnabled = False
