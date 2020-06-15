@@ -223,22 +223,29 @@ class CarState(CarStateBase):
       ("CF_Lca_Stat", "LCA11", 0),
       ("CF_Lca_IndLeft", "LCA11", 0),
       ("CF_Lca_IndRight", "LCA11", 0),
+      if self.car_fingerprint in [CAR.ELANTRA_GT_I30]:
+        CS.scc11["VSetDis"] = 0
+        CS.scc11["ACC_ObjDist"] = 204
+        CS.scc11["TauGapSet"] = 2
+        CS.scc11["Navi_SCC_Camera_Status"] = 0
 
+        CS.scc12["aReqValue"] = -10.23 #always
+        CS.scc12["CF_VSM_ConfMode"] = 0
+        CS.scc12["AEB_Status"] = 0
+
+        CS.scc13["SCCDrvModeRValue"] = 3
+      
       ("MainMode_ACC", "SCC11", 1),
       ("SCCInfoDisplay", "SCC11", 0),
       ("AliveCounterACC", "SCC11", 0),
-      ("VSetDis", "SCC11", 30),
       ("ObjValid", "SCC11", 0),
       ("DriverAlertDisplay", "SCC11", 0),
-      ("TauGapSet", "SCC11", 4),
       ("ACC_ObjStatus", "SCC11", 0),
       ("ACC_ObjLatPos", "SCC11", 0),
-      ("ACC_ObjDist", "SCC11", 150), #TK211X value is 204.6
       ("ACC_ObjRelSpd", "SCC11", 0),
       ("Navi_SCC_Curve_Status", "SCC11", 0),
       ("Navi_SCC_Curve_Act", "SCC11", 0),
       ("Navi_SCC_Camera_Act", "SCC11", 0),
-      ("Navi_SCC_Camera_Status", "SCC11", 2),
 
       ("ACCMode", "SCC12", 0),
       ("CF_VSM_Prefill", "SCC12", 0),
@@ -254,15 +261,11 @@ class CarState(CarStateBase):
       ("aReqRaw", "SCC12", 0), #aReqMax
       ("TakeOverReq", "SCC12", 0),
       ("PreFill", "SCC12", 0),
-      ("aReqValue", "SCC12", 0), #aReqMin
-      ("CF_VSM_ConfMode", "SCC12", 1),
       ("AEB_Failinfo", "SCC12", 0),
-      ("AEB_Status", "SCC12", 2),
       ("AEB_CmdAct", "SCC12", 0),
       ("AEB_StopReq", "SCC12", 0),
       ("CR_VSM_Alive", "SCC12", 0),
       ("CR_VSM_ChkSum", "SCC12", 0),
-      ("SCCDrvModeRValue", "SCC13", 2),
       ("SCC_Equip", "SCC13", 1),
       ("AebDrvSetStatus", "SCC13", 0),
 
