@@ -215,6 +215,7 @@ class CarState(CarStateBase):
       ("BrakeLight", "TCS13", 0),
       ("DriverBraking", "TCS13", 0),
       ("CF_VSM_Avail", "TCS13", 0),
+      ("ACC_EQUIP", "TCS13", 0),
 
       ("ESC_Off_Step", "TCS15", 0),
 
@@ -234,6 +235,7 @@ class CarState(CarStateBase):
         CS.scc12["AEB_Status"] = 0
 
         CS.scc13["SCCDrvModeRValue"] = 3
+      
       
       ("MainMode_ACC", "SCC11", 1),
       ("SCCInfoDisplay", "SCC11", 0),
