@@ -221,9 +221,7 @@ class CarInterface(CarInterfaceBase):
     ret.sasBus = 1 if 688 in fingerprint[1] and 1296 not in fingerprint[1] else 0
     ret.sccBus = 0 if 1056 in fingerprint[0] else 1 if 1056 in fingerprint[1] and 1296 not in fingerprint[1] \
                                                                      else 2 if 1056 in fingerprint[2] else -1
-    ret.autoLcaEnabled = 0
-
-    ret.radarOffCan = True
+    ret.radarOffCan = ret.sccBus == -1
     ret.openpilotLongitudinalControl = True #TODO make ui toggle
     ret.enableCruise = not ret.radarOffCan
     ret.autoLcaEnabled = False
