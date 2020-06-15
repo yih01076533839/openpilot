@@ -223,19 +223,7 @@ class CarState(CarStateBase):
 
       ("CF_Lca_Stat", "LCA11", 0),
       ("CF_Lca_IndLeft", "LCA11", 0),
-      ("CF_Lca_IndRight", "LCA11", 0),
-      if self.car_fingerprint in [CAR.ELANTRA_GT_I30]:
-        CS.scc11["VSetDis"] = 0
-        CS.scc11["ACC_ObjDist"] = 204
-        CS.scc11["TauGapSet"] = 2
-        CS.scc11["Navi_SCC_Camera_Status"] = 0
-
-        CS.scc12["aReqValue"] = -10.23 #always
-        CS.scc12["CF_VSM_ConfMode"] = 0
-        CS.scc12["AEB_Status"] = 0
-
-        CS.scc13["SCCDrvModeRValue"] = 3
-      
+      ("CF_Lca_IndRight", "LCA11", 0),      
       
       ("MainMode_ACC", "SCC11", 1),
       ("SCCInfoDisplay", "SCC11", 0),
@@ -288,6 +276,17 @@ class CarState(CarStateBase):
       ("CGW4", 5),
       ("WHL_SPD11", 50),
     ]
+    if self.car_fingerprint in [CAR.ELANTRA_GT_I30]:
+      CS.scc11["VSetDis"] = 0
+      CS.scc11["ACC_ObjDist"] = 204
+      CS.scc11["TauGapSet"] = 2
+      CS.scc11["Navi_SCC_Camera_Status"] = 0
+
+      CS.scc12["aReqValue"] = -10.23 #always
+      CS.scc12["CF_VSM_ConfMode"] = 0
+      CS.scc12["AEB_Status"] = 0
+
+      CS.scc13["SCCDrvModeRValue"] = 3
     if CP.sccBus == 0 and CP.enableCruise:
       checks += [
         ("SCC11", 50),
