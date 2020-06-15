@@ -188,8 +188,8 @@ FEATURES = {
   "use_elect_gears": [CAR.KIA_OPTIMA_H, CAR.IONIQ_EV_LTD, CAR.KONA_EV, CAR.SONATA_H, CAR.KIA_NIRO_EV], 
   # Use E_EMS11 Message for Gas and Brake for Hybrid/ELectric
   "use_elect_ems": [CAR.SONATA_H, CAR.IONIQ_EV_LTD],
-  "has_scc13": [CAR.ELANTRA_GT_I30], 
-  "has_scc14": [CAR.ELANTRA_GT_I30], 
+  "has_scc13": [], 
+  "has_scc14": [], 
 }
 
 DBC = {
