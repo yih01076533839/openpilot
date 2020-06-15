@@ -157,6 +157,17 @@ class CarState(CarStateBase):
     self.mdps12 = cp_mdps.vl["MDPS12"]
     self.park_brake = cp.vl["CGW1"]['CF_Gway_ParkBrakeSw']
     self.steer_state = cp_mdps.vl["MDPS12"]['CF_Mdps_ToiActive'] #0 NOT ACTIVE, 1 ACTIVE
+    if self.car_fingerprint in [CAR.ELANTRA_GT_I30]:
+      CS.scc11["VSetDis"] = 0
+      CS.scc11["ACC_ObjDist"] = 204
+      CS.scc11["TauGapSet"] = 2
+      CS.scc11["Navi_SCC_Camera_Status"] = 0
+
+      CS.scc12["aReqValue"] = -10.23 #always
+      CS.scc12["CF_VSM_ConfMode"] = 0
+      CS.scc12["AEB_Status"] = 0
+
+      CS.scc13["SCCDrvModeRValue"] = 3
     self.cruise_unavail = cp.vl["TCS13"]['CF_VSM_Avail'] != 1
     self.lead_distance = cp_scc.vl["SCC11"]['ACC_ObjDist'] if not self.no_radar else 0
     self.lkas_error = cp_cam.vl["LKAS11"]["CF_Lkas_LdwsSysState"] == 7
@@ -276,17 +287,6 @@ class CarState(CarStateBase):
       ("CGW4", 5),
       ("WHL_SPD11", 50),
     ]
-    if CP.carFingerprint in CAR[ELANTRA_GT_I30]:
-      CS.scc11["VSetDis"] = 0
-      CS.scc11["ACC_ObjDist"] = 204
-      CS.scc11["TauGapSet"] = 2
-      CS.scc11["Navi_SCC_Camera_Status"] = 0
-
-      CS.scc12["aReqValue"] = -10.23 #always
-      CS.scc12["CF_VSM_ConfMode"] = 0
-      CS.scc12["AEB_Status"] = 0
-
-      CS.scc13["SCCDrvModeRValue"] = 3
     if CP.sccBus == 0 and CP.enableCruise:
       checks += [
         ("SCC11", 50),
