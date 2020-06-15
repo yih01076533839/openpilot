@@ -276,7 +276,7 @@ class CarState(CarStateBase):
       ("CGW4", 5),
       ("WHL_SPD11", 50),
     ]
-    if self.car_fingerprint in [CAR.ELANTRA_GT_I30]:
+    if CP.car_fingerprint in [CAR.ELANTRA_GT_I30]:
       CS.scc11["VSetDis"] = 0
       CS.scc11["ACC_ObjDist"] = 204
       CS.scc11["TauGapSet"] = 2
