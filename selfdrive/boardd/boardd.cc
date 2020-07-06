@@ -56,6 +56,11 @@ libusb_context *ctx = NULL;
 libusb_device_handle *dev_handle = NULL;
 pthread_mutex_t usb_lock;
 
+libusb_device **list;
+libusb_device_handle **pandas_handles;
+int pandas_cnt = 0;
+int second_panda = 1;
+
 bool spoofing_started = false;
 bool fake_send = false;
 bool loopback_can = false;
@@ -145,6 +150,13 @@ void *safety_setter_thread(void *s) {
   return NULL;
 }
 
+int is_usb_device_panda(libusb_device *dev) {
+  libusb_device_descriptor desc;
+  int err = libusb_get_device_descriptor(dev, &desc);
+  if (desc.idVendor == 0xbbaa && desc.idProduct == 0xddcc) {return 1; }
+  return err;
+}
+
 // must be called before threads or with mutex
 bool usb_connect() {
   int err, err2;
@@ -162,14 +174,42 @@ bool usb_connect() {
     dev_handle = NULL;
   }
 
-  dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
-  if (dev_handle == NULL) { goto fail; }
+    ssize_t usb_cnt = libusb_get_device_list(ctx, &list);
+  //if (usb_cnt < 0) { goto fail; }
+  ssize_t i;
+  for(i = 0; i < usb_cnt; i++) {
+    if (is_usb_device_panda(list[i]) == 1) {
+      err = libusb_open(list[i], &pandas_handles[pandas_cnt]);
+      if (err != 0) { goto fail; }
 
-  err = libusb_set_configuration(dev_handle, 1);
-  if (err != 0) { goto fail; }
+      err = libusb_set_configuration(pandas_handles[pandas_cnt], 1);
+      if (err != 0) { goto fail; }
 
-  err = libusb_claim_interface(dev_handle, 0);
-  if (err != 0) { goto fail; }
+      err = libusb_claim_interface(pandas_handles[pandas_cnt], 0);
+      if (err != 0) { goto fail; }
+
+      libusb_control_transfer(pandas_handles[pandas_cnt], 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
+
+      if (pandas_cnt == 0 || hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
+        libusb_control_transfer(pandas_handles[pandas_cnt], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
+        hw_type = (cereal::HealthData::HwType)(hw_query[0]);
+        dev_handle = pandas_handles[pandas_cnt];}
+        libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::NO_OUTPUT), 0, NULL, 0, TIMEOUT);
+        if (pandas_cnt > 0) {second_panda = 0;}
+      pandas_cnt++;
+    }
+  }
+  libusb_free_device_list(list, 1);
+  LOGW("found %d Panda", pandas_cnt);
+
+//  dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
+//  if (dev_handle == NULL) { goto fail; }
+
+//  err = libusb_set_configuration(dev_handle, 1);
+//  if (err != 0) { goto fail; }
+
+//  err = libusb_claim_interface(dev_handle, 0);
+//  if (err != 0) { goto fail; }
 
   if (loopback_can) {
     libusb_control_transfer(dev_handle, 0xc0, 0xe5, 1, 0, NULL, 0, TIMEOUT);
@@ -209,9 +249,9 @@ bool usb_connect() {
 #endif
   connected_once = true;
 
-  libusb_control_transfer(dev_handle, 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
+//  libusb_control_transfer(dev_handle, 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
 
-  hw_type = (cereal::HealthData::HwType)(hw_query[0]);
+//  hw_type = (cereal::HealthData::HwType)(hw_query[0]);
   is_pigeon = (hw_type == cereal::HealthData::HwType::GREY_PANDA) ||
               (hw_type == cereal::HealthData::HwType::BLACK_PANDA) ||
               (hw_type == cereal::HealthData::HwType::UNO);
@@ -282,7 +322,7 @@ void handle_usb_issue(int err, const char func[]) {
 void can_recv(PubMaster &pm) {
   int err;
   uint32_t data[RECV_SIZE/4];
-  int recv;
+  int recv, recv1, recv2;
   uint32_t f1, f2;
 
   uint64_t start_time = nanos_since_boot();
@@ -291,17 +331,29 @@ void can_recv(PubMaster &pm) {
   pthread_mutex_lock(&usb_lock);
 
   do {
-    err = libusb_bulk_transfer(dev_handle, 0x81, (uint8_t*)data, RECV_SIZE, &recv, TIMEOUT);
+    err = libusb_bulk_transfer(dev_handle, 0x81, (uint8_t*)data, RECV_SIZE, &recv1, TIMEOUT);
     if (err != 0) { handle_usb_issue(err, __func__); }
-    if (err == -8) { LOGE_100("overflow got 0x%x", recv); };
+    if (err == -8) { LOGE_100("overflow got 0x%x", recv1); };
 
     // timeout is okay to exit, recv still happened
     if (err == -7) { break; }
   } while(err != 0);
 
+  if (recv1 < RECV_SIZE && pandas_cnt > 1) {
+    do {
+      err = libusb_bulk_transfer(pandas_handles[second_panda], 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
+      if (err != 0) { handle_usb_issue(err, __func__); }
+      if (err == -8) { LOGE_100("overflow got 0x%x", recv2); };
+
+      // timeout is okay to exit, recv still happened
+      if (err == -7) { break; }
+    } while(err != 0);
+  }
+
   pthread_mutex_unlock(&usb_lock);
 
   // return if length is 0
+  recv = recv1 + recv2;
   if (recv <= 0) {
     return;
   } else if (recv == RECV_SIZE) {
@@ -313,6 +365,7 @@ void can_recv(PubMaster &pm) {
   cereal::Event::Builder event = msg.initRoot<cereal::Event>();
   event.setLogMonoTime(start_time);
   size_t num_msg = recv / 0x10;
+  size_t num_msg1 = recv / 0x10;
   auto canData = event.initCan(num_msg);
 
   // populate message
@@ -328,7 +381,7 @@ void can_recv(PubMaster &pm) {
     canData[i].setBusTime(data[i*4+1] >> 16);
     int len = data[i*4+1]&0xF;
     canData[i].setDat(kj::arrayPtr((uint8_t*)&data[i*4+2], len));
-    canData[i].setSrc((data[i*4+1] >> 4) & 0xff);
+    canData[i].setSrc(((data[i*4+1] + (i < num_msg1 ? 0 : 10)) >> 4) & 0xfff);
   }
 
   pm.send("can", msg);
@@ -542,22 +595,27 @@ void can_send(cereal::Event::Reader &event) {
     return;
   }
   int msg_count = event.getSendcan().size();
+  int msg_count1= 0;
 
   uint32_t *send = (uint32_t*)malloc(msg_count*0x10);
   memset(send, 0, msg_count*0x10);
 
-  for (int i = 0; i < msg_count; i++) {
+  for (int i = 0, j = 0; i < msg_count; i++) {
     auto cmsg = event.getSendcan()[i];
+    j = i - msg_count1;
+    if (pandas_cnt > 0 && cmsg.getSrc() > 9) {
+      j = msg_count - msg_count1++ - 1;
+    }
     if (cmsg.getAddress() >= 0x800) {
       // extended
-      send[i*4] = (cmsg.getAddress() << 3) | 5;
+      send[j*4] = (cmsg.getAddress() << 3) | 5;
     } else {
       // normal
-      send[i*4] = (cmsg.getAddress() << 21) | 1;
+      send[j*4] = (cmsg.getAddress() << 21) | 1;
     }
     assert(cmsg.getDat().size() <= 8);
-    send[i*4+1] = cmsg.getDat().size() | (cmsg.getSrc() << 4);
-    memcpy(&send[i*4+2], cmsg.getDat().begin(), cmsg.getDat().size());
+    send[j*4+1] = cmsg.getDat().size() | (cmsg.getSrc() << 4);
+    memcpy(&send[j*4+2], cmsg.getDat().begin(), cmsg.getDat().size());
   }
 
   // send to board
@@ -568,7 +626,7 @@ void can_send(cereal::Event::Reader &event) {
     do {
       // Try sending can messages. If the receive buffer on the panda is full it will NAK
       // and libusb will try again. After 5ms, it will time out. We will drop the messages.
-      err = libusb_bulk_transfer(dev_handle, 3, (uint8_t*)send, msg_count*0x10, &sent, 5);
+      err = libusb_bulk_transfer(dev_handle, 3, (uint8_t*)send, (msg_count-msg_count1)*0x10, &sent, 5);
       if (err == LIBUSB_ERROR_TIMEOUT) {
         LOGW("Transmit buffer full");
         break;
@@ -577,6 +635,20 @@ void can_send(cereal::Event::Reader &event) {
         handle_usb_issue(err, __func__);
       }
     } while(err != 0);
+    if (msg_count1 > 0) {
+      do {
+        // Try sending can messages. If the receive buffer on the panda is full it will NAK
+        // and libusb will try again. After 5ms, it will time out. We will drop the messages.
+        err = libusb_bulk_transfer(pandas_handles[second_panda], 3, (uint8_t*)&send[(msg_count-msg_count1)*4], msg_count1*0x10, &sent, 5);
+        if (err == LIBUSB_ERROR_TIMEOUT) {
+          LOGW("Transmit buffer full");
+          break;
+        } else if (err != 0 || msg_count*0x10 != sent) {
+          LOGW("Error");
+          handle_usb_issue(err, __func__);
+        }
+      } while(err != 0);
+    }
   }
 
   pthread_mutex_unlock(&usb_lock);
