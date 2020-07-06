@@ -35,9 +35,17 @@ def update_panda():
   while True:
     # break on normal mode Panda
     panda_list = Panda.list()
-    if len(panda_list) > 0:
-      cloudlog.info("Panda found, connecting")
+    panda_count = len(panda_list)
+    if panda_count > 0:
+      cloudlog.info(f"{panda_count} Panda found, connecting)
       panda = Panda(panda_list[0])
+      if panda_count > 1 and panda.is_white() and pandas
+      for i in range(panda_count):
+        if panda_count < 2:
+          break
+        pandas[i] = Panda(panda_list[i])
+        if panda.is_white() and not pandas[i].is_white():
+          panda = pandas[i]
       break
 
     # flash on DFU mode Panda
