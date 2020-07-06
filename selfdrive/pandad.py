@@ -37,9 +37,8 @@ def update_panda():
     panda_list = Panda.list()
     panda_count = len(panda_list)
     if panda_count > 0:
-      cloudlog.info(f"{panda_count} Panda found, connecting)
+      cloudlog.info(f"{panda_count} Panda found, connecting")
       panda = Panda(panda_list[0])
-      if panda_count > 1 and panda.is_white() and pandas
       for i in range(panda_count):
         if panda_count < 2:
           break
