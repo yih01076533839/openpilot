@@ -59,7 +59,6 @@ pthread_mutex_t usb_lock;
 libusb_device **list;
 libusb_device_handle *pandas_handles[2];
 int pandas_cnt = 0;
-int second_panda = 1;
 
 bool spoofing_started = false;
 bool fake_send = false;
@@ -172,8 +171,8 @@ bool usb_connect() {
   if (dev_handle != NULL){
     libusb_close(dev_handle);
     dev_handle = NULL;
-    if (pandas_handles[second_panda] != NULL) {
-      libusb_close(pandas_handles[second_panda]);
+    if (pandas_handles[1] != NULL) {
+      libusb_close(pandas_handles[1]);
       }
     pandas_handles[0] = pandas_handles[1] = NULL;
   }
@@ -199,13 +198,13 @@ bool usb_connect() {
       if (pandas_cnt == 0 || hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
         libusb_control_transfer(pandas_handles[pandas_cnt], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
         hw_type = (cereal::HealthData::HwType)(hw_query[0]);
-        dev_handle = pandas_handles[pandas_cnt];}
+        dev_handle = pandas_handles[pandas_cnt];
+        if (pandas_cnt > 0) {pandas_handles[pandas_cnt] = pandas_handles[0]; pandas_handles[0] = dev_handle;}
+        dev_handle = pandas_handles[pandas_cnt];
         libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::NO_OUTPUT), 0, NULL, 0, TIMEOUT);
-        if (pandas_cnt > 0) {second_panda = 0;}
-      pandas_cnt++;
-      if (pandas_cnt == 2) {
-        break;
       }
+      pandas_cnt++;
+      if (pandas_cnt == 2) {break;}
     }
   }
   libusb_free_device_list(list, 1);
@@ -351,7 +350,7 @@ void can_recv(PubMaster &pm) {
 
   if (recv1 < RECV_SIZE && pandas_cnt > 1) {
     do {
-      err = libusb_bulk_transfer(pandas_handles[second_panda], 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
+      err = libusb_bulk_transfer(pandas_handles[1], 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
       if (err != 0) { handle_usb_issue(err, __func__); }
       if (err == -8) { LOGE_100("overflow got 0x%x", recv2); };
 
@@ -649,7 +648,7 @@ void can_send(cereal::Event::Reader &event) {
       do {
         // Try sending can messages. If the receive buffer on the panda is full it will NAK
         // and libusb will try again. After 5ms, it will time out. We will drop the messages.
-        err = libusb_bulk_transfer(pandas_handles[second_panda], 3, (uint8_t*)&send[(msg_count-msg_count1)*4], msg_count1*0x10, &sent, 5);
+        err = libusb_bulk_transfer(pandas_handles[1], 3, (uint8_t*)&send[(msg_count-msg_count1)*4], msg_count1*0x10, &sent, 5);
         if (err == LIBUSB_ERROR_TIMEOUT) {
           LOGW("Transmit buffer full");
           break;
