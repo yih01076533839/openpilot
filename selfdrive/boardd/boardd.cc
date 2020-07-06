@@ -172,6 +172,10 @@ bool usb_connect() {
   if (dev_handle != NULL){
     libusb_close(dev_handle);
     dev_handle = NULL;
+    if (pandas_handles[second_panda] != NULL) {
+      libusb_close(pandas_handles[second_panda]);
+      }
+    pandas_handles[0] = pandas_handles[1] = NULL;
   }
 
   ssize_t usb_cnt = libusb_get_device_list(ctx, &list);
@@ -190,7 +194,7 @@ bool usb_connect() {
 
       libusb_control_transfer(pandas_handles[pandas_cnt], 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
 
-      LOGW("found %d Panda", pandas_cnt);
+      LOGW("found %d Panda", pandas_cnt + 1);
 
       if (pandas_cnt == 0 || hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
         libusb_control_transfer(pandas_handles[pandas_cnt], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
