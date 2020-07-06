@@ -175,7 +175,6 @@ bool usb_connect() {
   }
 
   ssize_t usb_cnt = libusb_get_device_list(ctx, &list);
-  if (usb_cnt < 0) { goto fail; }
   pandas_cnt = 0;
   ssize_t i;
   for(i = 0; i < usb_cnt; i++) {
