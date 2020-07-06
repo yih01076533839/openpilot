@@ -57,7 +57,7 @@ libusb_device_handle *dev_handle = NULL;
 pthread_mutex_t usb_lock;
 
 libusb_device **list;
-libusb_device_handle **pandas_handles;
+libusb_device_handle *pandas_handles[2];
 int pandas_cnt = 0;
 int second_panda = 1;
 
@@ -174,8 +174,9 @@ bool usb_connect() {
     dev_handle = NULL;
   }
 
-    ssize_t usb_cnt = libusb_get_device_list(ctx, &list);
-  //if (usb_cnt < 0) { goto fail; }
+  ssize_t usb_cnt = libusb_get_device_list(ctx, &list);
+  if (usb_cnt < 0) { goto fail; }
+  pandas_cnt = 0;
   ssize_t i;
   for(i = 0; i < usb_cnt; i++) {
     if (is_usb_device_panda(list[i]) == 1) {
@@ -190,6 +191,8 @@ bool usb_connect() {
 
       libusb_control_transfer(pandas_handles[pandas_cnt], 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
 
+      LOGW("found %d Panda", pandas_cnt);
+
       if (pandas_cnt == 0 || hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
         libusb_control_transfer(pandas_handles[pandas_cnt], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
         hw_type = (cereal::HealthData::HwType)(hw_query[0]);
@@ -197,10 +200,14 @@ bool usb_connect() {
         libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::NO_OUTPUT), 0, NULL, 0, TIMEOUT);
         if (pandas_cnt > 0) {second_panda = 0;}
       pandas_cnt++;
+      if (pandas_cnt == 2) {
+        break;
+      }
     }
   }
   libusb_free_device_list(list, 1);
-  LOGW("found %d Panda", pandas_cnt);
+
+  if (dev_handle == NULL) { goto fail; }
 
 //  dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
 //  if (dev_handle == NULL) { goto fail; }
