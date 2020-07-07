@@ -344,6 +344,7 @@ struct HealthData {
   powerSaveEnabled @16 :Bool;
   uptime @17 :UInt32;
   faults @18 :List(FaultType);
+  dualPanda @20 :Bool;
 
   enum FaultStatus {
     none @0;
