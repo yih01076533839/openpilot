@@ -334,7 +334,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       LOGW("found second Panda, connecting...");
       if (pandas_handles[1] != NULL) {
         libusb_close(pandas_handles[1]);
-        pandas_handles[1] != NULL;
+        pandas_handles[1] = NULL;
       }
       pthread_mutex_lock(&usb_lock);
       err = libusb_open(dev, &pandas_handles[1]);
@@ -345,15 +345,13 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       if (err != 0) { goto fail; }
       libusb_control_transfer(pandas_handles[1], 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
       pthread_mutex_unlock(&usb_lock);
-      pandas_cnt++
+      pandas_cnt++;
     }
-  } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
-    if (dev == libusb_get_device(pandas_handles[1]) {
-      LOGW("second Panda, disconnected");
-      libusb_close(pandas_handles[1]);
-      pandas_handles[1] != NULL;
-      pandas_cnt--
-    }
+  } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT && dev == libusb_get_device(pandas_handles[1])) {
+    LOGW("second Panda, disconnected");
+    libusb_close(pandas_handles[1]);
+    pandas_handles[1] != NULL;
+    pandas_cnt--
   } 
   return 0;
 fail:
@@ -721,7 +719,7 @@ void *can_send_thread(void *crap) {
   SubSocket * subscriber = SubSocket::create(context, "sendcan");
   assert(subscriber != NULL);
   if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
-    err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED | LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT, LIBUSB_HOTPLUG_NO_FLAGS,
+    int err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED | LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle);
     assert(err == 0);
   }
