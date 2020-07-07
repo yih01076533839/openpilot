@@ -322,18 +322,42 @@ void usb_retry_connect() {
 
 int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
                      libusb_hotplug_event event, void *user_data) {
-  if (is_usb_device_panda(dev) == 1) {
-    if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
+  int err;
+  if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
+    if (hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
+      LOGW("found primery Panda");
       pthread_mutex_lock(&usb_lock);
       usb_retry_connect();
       pthread_mutex_unlock(&usb_lock);
-    } // else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
-    //  if (dev_handle) {
-    //    libusb_close(dev_handle);
-    //    dev_handle = NULL;
-    //  }
-  //  }
+    }
+    else if (hw_type != cereal::HealthData::HwType::UNKNOWN) {
+      LOGW("found second Panda, connecting...");
+      if (pandas_handles[1] != NULL) {
+        libusb_close(pandas_handles[1]);
+        pandas_handles[1] != NULL;
+      }
+      pthread_mutex_lock(&usb_lock);
+      err = libusb_open(dev, &pandas_handles[1]);
+      if (err != 0) { goto fail; }
+      err = libusb_set_configuration(pandas_handles[1], 1);
+      if (err != 0) { goto fail; }
+      err = libusb_claim_interface(pandas_handles[1], 0);
+      if (err != 0) { goto fail; }
+      libusb_control_transfer(pandas_handles[1], 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
+      pthread_mutex_unlock(&usb_lock);
+      pandas_cnt++
+    }
+  } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
+    if (dev == libusb_get_device(pandas_handles[1]) {
+      LOGW("second Panda, disconnected");
+      libusb_close(pandas_handles[1]);
+      pandas_handles[1] != NULL;
+      pandas_cnt--
+    }
   } 
+  return 0;
+fail:
+  LOGE("connecting failed, libusb error: %d", err);
   return 0;
 }
 
@@ -696,7 +720,11 @@ void *can_send_thread(void *crap) {
   Context * context = Context::create();
   SubSocket * subscriber = SubSocket::create(context, "sendcan");
   assert(subscriber != NULL);
-
+  if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
+    err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED | LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT, LIBUSB_HOTPLUG_NO_FLAGS,
+                                           0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle);
+    assert(err == 0);
+  }
   // run as fast as messages come in
   while (!do_exit) {
     Message * msg = subscriber->receive();
@@ -710,6 +738,7 @@ void *can_send_thread(void *crap) {
       can_send(event);
       delete msg;
     }
+    libusb_handle_events_completed(ctx, NULL);
   }
 
   delete subscriber;
@@ -729,7 +758,6 @@ void *can_recv_thread(void *crap) {
   uint64_t next_frame_time = nanos_since_boot() + dt;
 
   while (!do_exit) {
-    libusb_handle_events_completed(ctx, NULL);
     can_recv(pm);
 
     uint64_t cur_time = nanos_since_boot();
@@ -999,11 +1027,6 @@ int main() {
 
 #if LIBUSB_API_VERSION >= 0x01000106
   libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, LIBUSB_LOG_LEVEL_INFO);
-  if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
-    err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS, 0xbbaa, 0xddcc, -1,
-                                        hotplug_callback, NULL, &callback_handle);
-    assert(err == 0);
-  }
 #else
   libusb_set_debug(ctx, 3);
 #endif
