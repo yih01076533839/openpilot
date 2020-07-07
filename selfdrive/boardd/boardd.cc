@@ -1073,6 +1073,7 @@ int main() {
   // destruct libusb
 
   libusb_close(dev_handle);
-  libusb_hotplug_deregister_callback(ctx, callback_handle);
+  libusb_hotplug_deregister_callback(ctx, callback_handle[0]);
+  libusb_hotplug_deregister_callback(ctx, callback_handle[1]);
   libusb_exit(ctx);
 }
