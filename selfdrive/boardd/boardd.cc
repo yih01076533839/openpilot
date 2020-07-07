@@ -614,7 +614,7 @@ void can_send(cereal::Event::Reader &event) {
   for (int i = 0, j = 0; i < msg_count; i++) {
     auto cmsg = event.getSendcan()[i];
     j = i - msg_count1;
-    uint_8 src = cmsg.getSrc()
+    uint8_t src = cmsg.getSrc();
     if (pandas_cnt > 0 && src > 9) {
       j = msg_count - msg_count1++ - 1;
       src -= 10;
