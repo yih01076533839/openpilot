@@ -1000,8 +1000,9 @@ int main() {
 #if LIBUSB_API_VERSION >= 0x01000106
   libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, LIBUSB_LOG_LEVEL_INFO);
   if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
-    libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, 0, 0xbbaa, 0xddcc, -1,
+    err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS, 0xbbaa, 0xddcc, -1,
                                         hotplug_callback, NULL, &callback_handle);
+    assert(err == 0);
   }
 #else
   libusb_set_debug(ctx, 3);
