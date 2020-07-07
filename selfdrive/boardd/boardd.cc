@@ -58,6 +58,7 @@ pthread_mutex_t usb_lock;
 
 libusb_device **list;
 libusb_device_handle *pandas_handles[2];
+libusb_hotplug_callback_handle callback_handle;
 int pandas_cnt = 0;
 
 bool spoofing_started = false;
@@ -310,6 +311,23 @@ bool usb_connect() {
   return true;
 fail:
   return false;
+}
+
+int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
+                     libusb_hotplug_event event, void *user_data) {
+  if (is_usb_device_panda(dev) == 1) {
+    if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
+      pthread_mutex_lock(&usb_lock);
+      usb_retry_connect();
+      pthread_mutex_unlock(&usb_lock);
+    } // else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
+    //  if (dev_handle) {
+    //    libusb_close(dev_handle);
+    //    dev_handle = NULL;
+    //  }
+  //  }
+  } 
+  return 0;
 }
 
 // must be called before threads or with mutex
@@ -711,6 +729,7 @@ void *can_recv_thread(void *crap) {
   uint64_t next_frame_time = nanos_since_boot() + dt;
 
   while (!do_exit) {
+    libusb_handle_events_completed(ctx, NULL);
     can_recv(pm);
 
     uint64_t cur_time = nanos_since_boot();
@@ -980,6 +999,10 @@ int main() {
 
 #if LIBUSB_API_VERSION >= 0x01000106
   libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, LIBUSB_LOG_LEVEL_INFO);
+  if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
+    libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, 0, 0xbbaa, 0xddcc, -1,
+                                        hotplug_callback, NULL, &callback_handle);
+  }
 #else
   libusb_set_debug(ctx, 3);
 #endif
@@ -1026,5 +1049,6 @@ int main() {
   // destruct libusb
 
   libusb_close(dev_handle);
+  libusb_hotplug_deregister_callback(ctx, callback_handle);
   libusb_exit(ctx);
 }
