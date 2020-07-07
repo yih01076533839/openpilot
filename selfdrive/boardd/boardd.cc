@@ -313,6 +313,13 @@ fail:
   return false;
 }
 
+// must be called before threads or with mutex
+void usb_retry_connect() {
+  LOG("attempting to connect");
+  while (!usb_connect()) { usleep(100*1000); }
+  LOGW("connected to board");
+}
+
 int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
                      libusb_hotplug_event event, void *user_data) {
   if (is_usb_device_panda(dev) == 1) {
@@ -328,13 +335,6 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
   //  }
   } 
   return 0;
-}
-
-// must be called before threads or with mutex
-void usb_retry_connect() {
-  LOG("attempting to connect");
-  while (!usb_connect()) { usleep(100*1000); }
-  LOGW("connected to board");
 }
 
 void handle_usb_issue(int err, const char func[]) {
