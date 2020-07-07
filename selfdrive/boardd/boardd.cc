@@ -390,7 +390,7 @@ void can_recv(PubMaster &pm) {
     canData[i].setBusTime(data[i*4+1] >> 16);
     int len = data[i*4+1]&0xF;
     canData[i].setDat(kj::arrayPtr((uint8_t*)&data[i*4+2], len));
-    canData[i].setSrc(((data[i*4+1] + (i < num_msg1 ? 0 : 10)) >> 4) & 0xfff);
+    canData[i].setSrc(((data[i*4+1] + (i < num_msg1 ? 0 : 10)) >> 4) & 0xff);
   }
 
   pm.send("can", msg);
@@ -612,8 +612,10 @@ void can_send(cereal::Event::Reader &event) {
   for (int i = 0, j = 0; i < msg_count; i++) {
     auto cmsg = event.getSendcan()[i];
     j = i - msg_count1;
-    if (pandas_cnt > 0 && cmsg.getSrc() > 9) {
+    uint_8 src = cmsg.getSrc()
+    if (pandas_cnt > 0 && src > 9) {
       j = msg_count - msg_count1++ - 1;
+      src -= 10;
     }
     if (cmsg.getAddress() >= 0x800) {
       // extended
@@ -623,7 +625,7 @@ void can_send(cereal::Event::Reader &event) {
       send[j*4] = (cmsg.getAddress() << 21) | 1;
     }
     assert(cmsg.getDat().size() <= 8);
-    send[j*4+1] = cmsg.getDat().size() | (cmsg.getSrc() << 4);
+    send[j*4+1] = cmsg.getDat().size() | (src << 4);
     memcpy(&send[j*4+2], cmsg.getDat().begin(), cmsg.getDat().size());
   }
 
