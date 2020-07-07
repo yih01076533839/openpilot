@@ -573,6 +573,7 @@ void can_health(PubMaster &pm) {
   healthData.setFanSpeedRpm(fan_speed_rpm);
   healthData.setFaultStatus(cereal::HealthData::FaultStatus(health.fault_status));
   healthData.setPowerSaveEnabled((bool)(health.power_save_enabled));
+  healthData.setDualPanda(pandas_cnt > 1);
 
   // Convert faults bitset to capnp list
   std::bitset<sizeof(health.faults) * 8> fault_bits(health.faults);
@@ -592,6 +593,7 @@ void can_health(PubMaster &pm) {
   // send heartbeat back to panda
   pthread_mutex_lock(&usb_lock);
   libusb_control_transfer(dev_handle, 0x40, 0xf3, 1, 0, NULL, 0, TIMEOUT);
+  if (pandas_cnt > 1) {libusb_control_transfer(pandas_handles[1], 0x40, 0xf3, 1, 0, NULL, 0, TIMEOUT);}
   pthread_mutex_unlock(&usb_lock);
 }
 
@@ -646,7 +648,7 @@ void can_send(cereal::Event::Reader &event) {
         handle_usb_issue(err, __func__);
       }
     } while(err != 0);
-    if (msg_count1 > 0) {
+    if (pandas_cnt > 1 && msg_count1 > 0) {
       do {
         // Try sending can messages. If the receive buffer on the panda is full it will NAK
         // and libusb will try again. After 5ms, it will time out. We will drop the messages.
