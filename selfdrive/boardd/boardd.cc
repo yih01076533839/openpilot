@@ -391,7 +391,12 @@ void can_recv(PubMaster &pm) {
   if (recv1 < RECV_SIZE && pandas_cnt > 1) {
     do {
       err = libusb_bulk_transfer(pandas_handles[1], 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
-      if (err != 0) { handle_usb_issue(err, __func__); }
+      if (err == -4) {
+          LOGW("second Panda connection lost!!");
+          pandas_cnt--;
+          libusb_close(pandas_handles[1]);
+          pandas_handles[1] = NULL;
+      } else if (err != 0) { handle_usb_issue(err, __func__); }
       if (err == -8) { LOGE_100("overflow got 0x%x", recv2); };
 
       // timeout is okay to exit, recv still happened
@@ -696,6 +701,11 @@ void can_send(cereal::Event::Reader &event) {
         if (err == LIBUSB_ERROR_TIMEOUT) {
           LOGW("Transmit buffer full");
           break;
+        } else if (err == -4) {
+          LOGW("second Panda connection lost!!");
+          pandas_cnt--;
+          libusb_close(pandas_handles[1]);
+          pandas_handles[1] = NULL;
         } else if (err != 0 || msg_count*0x10 != sent) {
           LOGW("Error");
           handle_usb_issue(err, __func__);
