@@ -760,7 +760,7 @@ void *can_send_thread(void *crap) {
     }
     // handel pending usb events in non-blocking mode
     // should use with with mutex?!?!
-    libusb_handle_events_timeout_completed(ctx, libusb_events_tv, NULL);
+    libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
   }
 
   delete subscriber;
