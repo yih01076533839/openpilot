@@ -210,7 +210,7 @@ bool usb_connect() {
       if (pandas_cnt == 2) {break;}
     }
   }
-  libusb_free_device_list(list, 1);
+  libusb_free_device_list(usb_devs_list, 1);
 
 //  dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
   if (dev_handle == NULL) { goto fail; }
@@ -736,13 +736,13 @@ void *can_send_thread(void *crap) {
 
   // enable hotpulg notification for second panda arrival and departure
   // further consideration must be given to multi-threaded implications, see: http://libusb.sourceforge.net/api-1.0/libusb_mtasync.html
+  struct timeval libusb_events_tv; libusb_events_tv.tv_sec = 0; libusb_events_tv.tv_usec = 0;
   if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
     int err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[0]);
     err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
     assert(err == 0);
-    struct timeval libusb_events_tv; libusb_events_tv.tv_sec = 0; libusb_events_tv.tv_usec = 0;
   }
 
   // run as fast as messages come in
