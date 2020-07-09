@@ -56,7 +56,7 @@ libusb_context *ctx = NULL;
 libusb_device_handle *dev_handle = NULL;
 pthread_mutex_t usb_lock;
 
-libusb_device **list;
+libusb_device **usb_devs_list;
 libusb_device_handle *pandas_handles[2];
 libusb_hotplug_callback_handle callback_handle[2];
 int pandas_cnt = 0;
@@ -178,12 +178,12 @@ bool usb_connect() {
     pandas_handles[0] = pandas_handles[1] = NULL;
   }
 
-  ssize_t usb_cnt = libusb_get_device_list(ctx, &list);
+  ssize_t usb_cnt = libusb_get_device_list(ctx, &usb_devs_list);
   pandas_cnt = 0;
   ssize_t i;
   for(i = 0; i < usb_cnt; i++) {
-    if (is_usb_device_panda(list[i]) == 1) {
-      err = libusb_open(list[i], &pandas_handles[pandas_cnt]);
+    if (is_usb_device_panda(usb_devs_list[i]) == 1) {
+      err = libusb_open(usb_devs_list[i], &pandas_handles[pandas_cnt]);
       if (err != 0) { goto fail; }
 
       err = libusb_set_configuration(pandas_handles[pandas_cnt], 1);
@@ -192,16 +192,18 @@ bool usb_connect() {
       err = libusb_claim_interface(pandas_handles[pandas_cnt], 0);
       if (err != 0) { goto fail; }
 
+      // set second panda SafetyModel
       libusb_control_transfer(pandas_handles[pandas_cnt], 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
-
       LOGW("found %d Panda", pandas_cnt + 1);
 
+      // set prime panda and move white panda to second panda if other panda found
       if (pandas_cnt == 0 || hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
         libusb_control_transfer(pandas_handles[pandas_cnt], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
         hw_type = (cereal::HealthData::HwType)(hw_query[0]);
         dev_handle = pandas_handles[pandas_cnt];
         if (pandas_cnt > 0) {pandas_handles[pandas_cnt] = pandas_handles[0]; pandas_handles[0] = dev_handle;}
         dev_handle = pandas_handles[pandas_cnt];
+        // set prime panda Safety Model
         libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::NO_OUTPUT), 0, NULL, 0, TIMEOUT);
       }
       pandas_cnt++;
@@ -210,10 +212,8 @@ bool usb_connect() {
   }
   libusb_free_device_list(list, 1);
 
-  if (dev_handle == NULL) { goto fail; }
-
 //  dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
-//  if (dev_handle == NULL) { goto fail; }
+  if (dev_handle == NULL) { goto fail; }
 
 //  err = libusb_set_configuration(dev_handle, 1);
 //  if (err != 0) { goto fail; }
@@ -320,16 +320,19 @@ void usb_retry_connect() {
   LOGW("connected to board");
 }
 
+// only for second panda connecting/disconnecting events
 int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
                      libusb_hotplug_event event, void *user_data) {
   int err;
   if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
+    // disconnect all pandas if prime panda is white panda
     if (hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
       LOGW("found primery Panda");
       pthread_mutex_lock(&usb_lock);
       usb_retry_connect();
       pthread_mutex_unlock(&usb_lock);
     }
+    // connect second panda if prime panda already connected
     else if (hw_type != cereal::HealthData::HwType::UNKNOWN) {
       LOGW("found second Panda, connecting...");
       if (pandas_handles[1] != NULL) {
@@ -388,6 +391,7 @@ void can_recv(PubMaster &pm) {
     if (err == -7) { break; }
   } while(err != 0);
 
+  // second panda recv if Receive buffer has empty space
   if (recv1 < RECV_SIZE && pandas_cnt > 1) {
     do {
       err = libusb_bulk_transfer(pandas_handles[1], 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
@@ -398,7 +402,6 @@ void can_recv(PubMaster &pm) {
           pandas_handles[1] = NULL;
       } else if (err != 0) { handle_usb_issue(err, __func__); }
       if (err == -8) { LOGE_100("overflow got 0x%x", recv2); };
-
       // timeout is okay to exit, recv still happened
       if (err == -7) { break; }
     } while(err != 0);
@@ -419,7 +422,7 @@ void can_recv(PubMaster &pm) {
   cereal::Event::Builder event = msg.initRoot<cereal::Event>();
   event.setLogMonoTime(start_time);
   size_t num_msg = recv / 0x10;
-  size_t num_msg1 = recv / 0x10;
+  size_t num_msg1 = num_msg;
   auto canData = event.initCan(num_msg);
 
   // populate message
@@ -435,6 +438,7 @@ void can_recv(PubMaster &pm) {
     canData[i].setBusTime(data[i*4+1] >> 16);
     int len = data[i*4+1]&0xF;
     canData[i].setDat(kj::arrayPtr((uint8_t*)&data[i*4+2], len));
+    // second panda bus numbring (bus +10), e.g., bus0 = bus10
     canData[i].setSrc(((data[i*4+1] + (i < num_msg1 ? 0 : 10)) >> 4) & 0xff);
   }
 
@@ -660,7 +664,8 @@ void can_send(cereal::Event::Reader &event) {
     auto cmsg = event.getSendcan()[i];
     j = i - msg_count1;
     uint8_t src = cmsg.getSrc();
-    if (pandas_cnt > 0 && src > 9) {
+    // check for second panda bus numbering and convert it to panda numbring e.g., bus10 = bus0
+    if (pandas_cnt > 0 && src > 9 && src < 15) {
       j = msg_count - msg_count1++ - 1;
       src -= 10;
     }
@@ -728,13 +733,18 @@ void *can_send_thread(void *crap) {
   Context * context = Context::create();
   SubSocket * subscriber = SubSocket::create(context, "sendcan");
   assert(subscriber != NULL);
+
+  // enable hotpulg notification for second panda arrival and departure
+  // further consideration must be given to multi-threaded implications, see: http://libusb.sourceforge.net/api-1.0/libusb_mtasync.html
   if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
     int err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[0]);
     err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
     assert(err == 0);
+    struct timeval libusb_events_tv; libusb_events_tv.tv_sec = 0; libusb_events_tv.tv_usec = 0;
   }
+
   // run as fast as messages come in
   while (!do_exit) {
     Message * msg = subscriber->receive();
@@ -748,7 +758,9 @@ void *can_send_thread(void *crap) {
       can_send(event);
       delete msg;
     }
-    libusb_handle_events_completed(ctx, NULL);
+    // handel pending usb events in non-blocking mode
+    // should use with with mutex?!?!
+    libusb_handle_events_timeout_completed(ctx, libusb_events_tv, NULL);
   }
 
   delete subscriber;
