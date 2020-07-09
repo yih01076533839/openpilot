@@ -340,11 +340,11 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       }
       pthread_mutex_lock(&usb_lock);
       err = libusb_open(dev, &dev2_handle);
-      if (err != 0) { LOGE("connecting failed, libusb error: %d", err);}
+      if (err != 0) { goto fail;}
       err = libusb_set_configuration(dev2_handle, 1);
-      if (err != 0) { LOGE("connecting failed, libusb error: %d", err);}
+      if (err != 0) { goto fail;}
       err = libusb_claim_interface(dev2_handle, 0);
-      if (err != 0) { LOGE("connecting failed, libusb error: %d", err);}
+      if (err != 0) { goto fail;}
       libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
       pthread_mutex_unlock(&usb_lock);
       pandas_cnt++;
@@ -356,6 +356,11 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
     pandas_cnt--;
   } 
   return 0;
+fail:
+  pthread_mutex_unlock(&usb_lock);
+  LOGW("connecting failed, libusb error: %d", err);
+  return 0;
+
 }
 
 void handle_usb_issue(int err, const char func[]) {
