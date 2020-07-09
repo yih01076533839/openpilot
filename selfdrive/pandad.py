@@ -42,6 +42,7 @@ def update_panda():
       if panda_count > 1:
         panda2 = Panda(panda_list[1])
         if panda.is_white() and not panda2.is_white():
+          panda.close()
           panda = panda2
       break
 
