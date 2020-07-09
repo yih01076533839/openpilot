@@ -329,7 +329,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
     if (hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
       LOGW("found primery Panda");
       pthread_mutex_lock(&usb_lock);
-      usb_retry_connect();
+      usb_connect();
       pthread_mutex_unlock(&usb_lock);
     }
     // connect second panda if prime panda already connected
@@ -341,11 +341,11 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       }
       pthread_mutex_lock(&usb_lock);
       err = libusb_open(dev, &pandas_handles[1]);
-      if (err != 0) { goto fail; }
+      if (err != 0) { LOGE("connecting failed, libusb error: %d", err);}
       err = libusb_set_configuration(pandas_handles[1], 1);
-      if (err != 0) { goto fail; }
+      if (err != 0) { LOGE("connecting failed, libusb error: %d", err);}
       err = libusb_claim_interface(pandas_handles[1], 0);
-      if (err != 0) { goto fail; }
+      if (err != 0) { LOGE("connecting failed, libusb error: %d", err);}
       libusb_control_transfer(pandas_handles[1], 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
       pthread_mutex_unlock(&usb_lock);
       pandas_cnt++;
@@ -356,9 +356,6 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
     pandas_handles[1] = NULL;
     pandas_cnt--;
   } 
-  return 0;
-fail:
-  LOGE("connecting failed, libusb error: %d", err);
   return 0;
 }
 
@@ -759,8 +756,11 @@ void *can_send_thread(void *crap) {
       delete msg;
     }
     // handel pending usb events in non-blocking mode
-    // should use with with mutex?!?!
+    pthread_mutex_lock(&usb_lock);
     libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
+    pthread_mutex_unlock(&usb_lock);
+
+
   }
 
   delete subscriber;
