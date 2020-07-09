@@ -209,7 +209,7 @@ bool usb_connect() {
       dev_handle = pandas_handles[0];
       dev2_handle = pandas_handles[1];
     }
-    hw_query[1] = {0};
+    hw_query[0] = {0};
   }
 //  dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
   if (dev_handle == NULL) { goto fail; }
