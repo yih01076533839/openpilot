@@ -60,6 +60,7 @@ libusb_device **usb_devs_list;
 libusb_device_handle *pandas_handles[2];
 libusb_hotplug_callback_handle callback_handle[2];
 int pandas_cnt = 0;
+struct timeval libusb_events_tv; libusb_events_tv.tv_sec = 0; libusb_events_tv.tv_usec = 0;
 
 bool spoofing_started = false;
 bool fake_send = false;
@@ -210,7 +211,7 @@ bool usb_connect() {
       if (pandas_cnt == 2) {break;}
     }
   }
-  libusb_free_device_list(list, 1);
+  libusb_free_device_list(usb_devs_list, 1);
 
 //  dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
   if (dev_handle == NULL) { goto fail; }
@@ -742,7 +743,6 @@ void *can_send_thread(void *crap) {
     err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
     assert(err == 0);
-    struct timeval libusb_events_tv; libusb_events_tv.tv_sec = 0; libusb_events_tv.tv_usec = 0;
   }
 
   // run as fast as messages come in
