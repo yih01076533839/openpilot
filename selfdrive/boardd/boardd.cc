@@ -730,7 +730,7 @@ void *can_send_thread(void *crap) {
   Context * context = Context::create();
   SubSocket * subscriber = SubSocket::create(context, "sendcan");
   assert(subscriber != NULL);
-
+/*
   // enable hotpulg notification for second panda arrival and departure
   // further consideration must be given to multi-threaded implications, see: http://libusb.sourceforge.net/api-1.0/libusb_mtasync.html
   struct timeval libusb_events_tv; libusb_events_tv.tv_sec = 0; libusb_events_tv.tv_usec = 0;
@@ -741,7 +741,7 @@ void *can_send_thread(void *crap) {
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
     assert(err == 0);
   }
-
+*/
   // run as fast as messages come in
   while (!do_exit) {
     Message * msg = subscriber->receive();
@@ -759,8 +759,6 @@ void *can_send_thread(void *crap) {
     pthread_mutex_lock(&usb_lock);
     libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
     pthread_mutex_unlock(&usb_lock);
-
-
   }
 
   delete subscriber;
