@@ -57,7 +57,7 @@ libusb_device_handle *dev_handle = NULL;
 pthread_mutex_t usb_lock;
 
 libusb_device **usb_devs_list;
-libusb_device_handle *pandas_handles[2];
+libusb_device_handle *dev2_handle = NULL;
 libusb_hotplug_callback_handle callback_handle[2];
 int pandas_cnt = 0;
 
@@ -89,6 +89,7 @@ void *safety_setter_thread(void *s) {
   // diagnostic only is the default, needed for VIN query
   pthread_mutex_lock(&usb_lock);
   libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
+  if (pandas_cnt > 1) {libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);}
   pthread_mutex_unlock(&usb_lock);
 
   char *value_vin;
@@ -169,13 +170,15 @@ bool usb_connect() {
 
   ignition_last = false;
 
+  libusb_device_handle *pandas_handles[2];
+
   if (dev_handle != NULL){
     libusb_close(dev_handle);
     dev_handle = NULL;
-    if (pandas_handles[1] != NULL) {
-      libusb_close(pandas_handles[1]);
+    if (dev2_handle != NULL) {
+      libusb_close(dev2_handle);
       }
-    pandas_handles[0] = pandas_handles[1] = NULL;
+    dev2_handle = NULL;
   }
 
   ssize_t usb_cnt = libusb_get_device_list(ctx, &usb_devs_list);
@@ -185,33 +188,28 @@ bool usb_connect() {
     if (is_usb_device_panda(usb_devs_list[i]) == 1) {
       err = libusb_open(usb_devs_list[i], &pandas_handles[pandas_cnt]);
       if (err != 0) { goto fail; }
-
       err = libusb_set_configuration(pandas_handles[pandas_cnt], 1);
       if (err != 0) { goto fail; }
-
       err = libusb_claim_interface(pandas_handles[pandas_cnt], 0);
       if (err != 0) { goto fail; }
-
-      // set second panda SafetyModel
-      libusb_control_transfer(pandas_handles[pandas_cnt], 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
-      LOGW("found %d Panda", pandas_cnt + 1);
-
-      // set prime panda and move white panda to second panda if other panda found
-      if (pandas_cnt == 0 || hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
-        libusb_control_transfer(pandas_handles[pandas_cnt], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
-        hw_type = (cereal::HealthData::HwType)(hw_query[0]);
-        dev_handle = pandas_handles[pandas_cnt];
-        if (pandas_cnt > 0) {pandas_handles[pandas_cnt] = pandas_handles[0]; pandas_handles[0] = dev_handle;}
-        dev_handle = pandas_handles[pandas_cnt];
-        // set prime panda Safety Model
-        libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::NO_OUTPUT), 0, NULL, 0, TIMEOUT);
-      }
       pandas_cnt++;
       if (pandas_cnt == 2) {break;}
     }
   }
   libusb_free_device_list(usb_devs_list, 1);
-
+  if (pandas_cnt == 1) {
+    dev_handle = pandas_handles[0];
+  }
+  else if (pandas_cnt == 2) {
+    libusb_control_transfer(pandas_handles[0], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
+    if (cereal::HealthData::HwType)(hw_query[0]) ==  cereal::HealthData::HwType::WHITE_PANDA) {
+      dev_handle = pandas_handles[1];
+      dev2_handle = pandas_handles[0];
+    } else {
+      dev_handle = pandas_handles[0];
+      dev2_handle = pandas_handles[1];
+    }
+  }
 //  dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
   if (dev_handle == NULL) { goto fail; }
 
@@ -335,25 +333,25 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
     // connect second panda if prime panda already connected
     else if (hw_type != cereal::HealthData::HwType::UNKNOWN) {
       LOGW("found second Panda, connecting...");
-      if (pandas_handles[1] != NULL) {
-        libusb_close(pandas_handles[1]);
-        pandas_handles[1] = NULL;
+      if (dev2_handle != NULL) {
+        libusb_close(dev2_handle);
+        dev2_handle = NULL;
       }
       pthread_mutex_lock(&usb_lock);
-      err = libusb_open(dev, &pandas_handles[1]);
+      err = libusb_open(dev, &dev2_handle);
       if (err != 0) { LOGE("connecting failed, libusb error: %d", err);}
-      err = libusb_set_configuration(pandas_handles[1], 1);
+      err = libusb_set_configuration(dev2_handle, 1);
       if (err != 0) { LOGE("connecting failed, libusb error: %d", err);}
-      err = libusb_claim_interface(pandas_handles[1], 0);
+      err = libusb_claim_interface(dev2_handle, 0);
       if (err != 0) { LOGE("connecting failed, libusb error: %d", err);}
-      libusb_control_transfer(pandas_handles[1], 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
+      libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
       pthread_mutex_unlock(&usb_lock);
       pandas_cnt++;
     }
-  } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT && dev == libusb_get_device(pandas_handles[1])) {
+  } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT && dev == libusb_get_device(dev2_handle)) {
     LOGW("second Panda, disconnected");
-    libusb_close(pandas_handles[1]);
-    pandas_handles[1] = NULL;
+    libusb_close(dev2_handle);
+    dev2_handle = NULL;
     pandas_cnt--;
   } 
   return 0;
@@ -391,12 +389,12 @@ void can_recv(PubMaster &pm) {
   // second panda recv if Receive buffer has empty space
   if (recv1 < RECV_SIZE && pandas_cnt > 1) {
     do {
-      err = libusb_bulk_transfer(pandas_handles[1], 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
+      err = libusb_bulk_transfer(dev2_handle, 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
       if (err == -4) {
           LOGW("second Panda connection lost!!");
           pandas_cnt--;
-          libusb_close(pandas_handles[1]);
-          pandas_handles[1] = NULL;
+          libusb_close(dev2_handle);
+          dev2_handle = NULL;
       } else if (err != 0) { handle_usb_issue(err, __func__); }
       if (err == -8) { LOGE_100("overflow got 0x%x", recv2); };
       // timeout is okay to exit, recv still happened
@@ -639,7 +637,7 @@ void can_health(PubMaster &pm) {
   // send heartbeat back to panda
   pthread_mutex_lock(&usb_lock);
   libusb_control_transfer(dev_handle, 0x40, 0xf3, 1, 0, NULL, 0, TIMEOUT);
-  if (pandas_cnt > 1) {libusb_control_transfer(pandas_handles[1], 0x40, 0xf3, 1, 0, NULL, 0, TIMEOUT);}
+  if (pandas_cnt > 1) {libusb_control_transfer(dev2_handle, 0x40, 0xf3, 1, 0, NULL, 0, TIMEOUT);}
   pthread_mutex_unlock(&usb_lock);
 }
 
@@ -699,15 +697,15 @@ void can_send(cereal::Event::Reader &event) {
       do {
         // Try sending can messages. If the receive buffer on the panda is full it will NAK
         // and libusb will try again. After 5ms, it will time out. We will drop the messages.
-        err = libusb_bulk_transfer(pandas_handles[1], 3, (uint8_t*)&send[(msg_count-msg_count1)*4], msg_count1*0x10, &sent, 5);
+        err = libusb_bulk_transfer(dev2_handle, 3, (uint8_t*)&send[(msg_count-msg_count1)*4], msg_count1*0x10, &sent, 5);
         if (err == LIBUSB_ERROR_TIMEOUT) {
           LOGW("Transmit buffer full");
           break;
         } else if (err == -4) {
           LOGW("second Panda connection lost!!");
           pandas_cnt--;
-          libusb_close(pandas_handles[1]);
-          pandas_handles[1] = NULL;
+          libusb_close(dev2_handle);
+          dev2_handle = NULL;
         } else if (err != 0 || msg_count*0x10 != sent) {
           LOGW("Error");
           handle_usb_issue(err, __func__);
