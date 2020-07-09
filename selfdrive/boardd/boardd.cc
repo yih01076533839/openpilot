@@ -202,14 +202,14 @@ bool usb_connect() {
   }
   else if (pandas_cnt == 2) {
     libusb_control_transfer(pandas_handles[0], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
-    if (cereal::HealthData::HwType)(hw_query[0]) ==  cereal::HealthData::HwType::WHITE_PANDA) {
+    if ((cereal::HealthData::HwType)(hw_query[0]) ==  cereal::HealthData::HwType::WHITE_PANDA) {
       dev_handle = pandas_handles[1];
       dev2_handle = pandas_handles[0];
     } else {
       dev_handle = pandas_handles[0];
       dev2_handle = pandas_handles[1];
     }
-    hw_query = {0};
+    hw_query[1] = {0};
   }
 //  dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
   if (dev_handle == NULL) { goto fail; }
@@ -734,7 +734,7 @@ void *can_send_thread(void *crap) {
   Context * context = Context::create();
   SubSocket * subscriber = SubSocket::create(context, "sendcan");
   assert(subscriber != NULL);
-/*
+
   // enable hotpulg notification for second panda arrival and departure
   // further consideration must be given to multi-threaded implications, see: http://libusb.sourceforge.net/api-1.0/libusb_mtasync.html
   struct timeval libusb_events_tv; libusb_events_tv.tv_sec = 0; libusb_events_tv.tv_usec = 0;
@@ -745,7 +745,7 @@ void *can_send_thread(void *crap) {
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
     assert(err == 0);
   }
-*/
+
   // run as fast as messages come in
   while (!do_exit) {
     Message * msg = subscriber->receive();
