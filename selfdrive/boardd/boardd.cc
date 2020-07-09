@@ -742,7 +742,7 @@ void *can_send_thread(void *crap) {
     err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
     assert(err == 0);
-    struct timeval libusb_events_tv; tv.tv_sec = 0; tv.tv_usec = 0;
+    struct timeval libusb_events_tv; libusb_events_tv.tv_sec = 0; libusb_events_tv.tv_usec = 0;
   }
 
   // run as fast as messages come in
