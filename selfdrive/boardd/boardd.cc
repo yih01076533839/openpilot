@@ -89,7 +89,7 @@ void *safety_setter_thread(void *s) {
   // diagnostic only is the default, needed for VIN query
   pthread_mutex_lock(&usb_lock);
   libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
-  if (pandas_cnt > 1) {libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);}
+  if (dev2_handle != NULL) {libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);}
   pthread_mutex_unlock(&usb_lock);
 
   char *value_vin;
@@ -175,10 +175,6 @@ bool usb_connect() {
   if (dev_handle != NULL){
     libusb_close(dev_handle);
     dev_handle = NULL;
-    if (dev2_handle != NULL) {
-      libusb_close(dev2_handle);
-      }
-    dev2_handle = NULL;
   }
 
   ssize_t usb_cnt = libusb_get_device_list(ctx, &usb_devs_list);
@@ -197,21 +193,29 @@ bool usb_connect() {
     }
   }
   libusb_free_device_list(usb_devs_list, 1);
+  libusb_control_transfer(pandas_handles[0], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
   if (pandas_cnt == 1) {
+    if (hw_query[0] == 1) {pandas_cnt--; goto fail; }
     dev_handle = pandas_handles[0];
-  }
-  else if (pandas_cnt == 2) {
-    libusb_control_transfer(pandas_handles[0], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
-    if ((cereal::HealthData::HwType)(hw_query[0]) ==  cereal::HealthData::HwType::WHITE_PANDA) {
-      dev_handle = pandas_handles[1];
-      dev2_handle = pandas_handles[0];
+  } else if (pandas_cnt == 2) {
+    if (hw_query[0] == 1) {
+      hw_query[0] = 0;
+      libusb_control_transfer(pandas_handles[1], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
+      if (hw_query[0] != 1) {
+        dev_handle = pandas_handles[1];
+        dev2_handle = pandas_handles[0];
+      } else {
+        dev_handle = pandas_handles[0];
+        libusb_close(pandas_handles[1]);
+        pandas_cnt--;
+      }
     } else {
       dev_handle = pandas_handles[0];
       dev2_handle = pandas_handles[1];
     }
-    hw_query[0] = {0};
   }
-//  dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
+  hw_query[0] = 0;
+
   if (dev_handle == NULL) { goto fail; }
 
 //  err = libusb_set_configuration(dev_handle, 1);
@@ -324,20 +328,9 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
                      libusb_hotplug_event event, void *user_data) {
   int err;
   if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
-    // disconnect all pandas if prime panda is white panda
-    if (hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
-      LOGW("found primery Panda");
-      pthread_mutex_lock(&usb_lock);
-      usb_connect();
-      pthread_mutex_unlock(&usb_lock);
-    }
     // connect second panda if prime panda already connected
-    else if (hw_type != cereal::HealthData::HwType::UNKNOWN) {
+    if (dev_handle != NULL && dev2_handle == NULL) {
       LOGW("found second Panda, connecting...");
-      if (dev2_handle != NULL) {
-        libusb_close(dev2_handle);
-        dev2_handle = NULL;
-      }
       pthread_mutex_lock(&usb_lock);
       err = libusb_open(dev, &dev2_handle);
       if (err != 0) { goto fail;}
@@ -346,8 +339,8 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       err = libusb_claim_interface(dev2_handle, 0);
       if (err != 0) { goto fail;}
       libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
-      pthread_mutex_unlock(&usb_lock);
       pandas_cnt++;
+      pthread_mutex_unlock(&usb_lock);
     }
   } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
     if (dev2_handle != NULL && dev == libusb_get_device(dev2_handle)) {
@@ -645,7 +638,7 @@ void can_health(PubMaster &pm) {
   // send heartbeat back to panda
   pthread_mutex_lock(&usb_lock);
   libusb_control_transfer(dev_handle, 0x40, 0xf3, 1, 0, NULL, 0, TIMEOUT);
-  if (pandas_cnt > 1) {libusb_control_transfer(dev2_handle, 0x40, 0xf3, 1, 0, NULL, 0, TIMEOUT);}
+  if (dev2_handle != NULL) {libusb_control_transfer(dev2_handle, 0x40, 0xf3, 1, 0, NULL, 0, TIMEOUT);}
   pthread_mutex_unlock(&usb_lock);
 }
 
