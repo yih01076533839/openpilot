@@ -349,11 +349,13 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       pthread_mutex_unlock(&usb_lock);
       pandas_cnt++;
     }
-  } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT && dev == libusb_get_device(dev2_handle)) {
-    LOGW("second Panda, disconnected");
-    libusb_close(dev2_handle);
-    dev2_handle = NULL;
-    pandas_cnt--;
+  } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
+    if (dev2_handle != NULL && dev == libusb_get_device(dev2_handle)) {
+      LOGW("second Panda, disconnected");
+      libusb_close(dev2_handle);
+      dev2_handle = NULL;
+      pandas_cnt--;
+    }
   } 
   return 0;
 fail:
@@ -737,11 +739,11 @@ void *can_send_thread(void *crap) {
 
   // enable hotpulg notification for second panda arrival and departure
   // further consideration must be given to multi-threaded implications, see: http://libusb.sourceforge.net/api-1.0/libusb_mtasync.html
-  struct timeval libusb_events_tv; libusb_events_tv.tv_sec = 0; libusb_events_tv.tv_usec = 0;
+  struct timeval libusb_events_tv = {0,0};
   if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
     int err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[0]);
-    err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
+    err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
     assert(err == 0);
   }
