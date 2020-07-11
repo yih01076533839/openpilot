@@ -413,7 +413,7 @@ void can_recv(PubMaster &pm) {
   } while(err != 0);
 
   // second panda recv if Receive buffer has empty space
-  if (recv1 < RECV_SIZE && pandas_cnt > 1 && dev2_handle != NULL) {
+  if (dev2_handle != NULL && recv1 < RECV_SIZE) {
     do {
       err = libusb_bulk_transfer(dev2_handle, 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
       if (err == -4) {
@@ -676,18 +676,18 @@ void can_send(cereal::Event::Reader &event) {
     return;
   }
   int msg_count = event.getSendcan().size();
-  int msg_count1= 0;
+  int msg2_count= 0;
 
   uint32_t *send = (uint32_t*)malloc(msg_count*0x10);
   memset(send, 0, msg_count*0x10);
 
   for (int i = 0, j = 0; i < msg_count; i++) {
     auto cmsg = event.getSendcan()[i];
-    j = i - msg_count1;
+    j = i - msg2_count;
     uint8_t src = cmsg.getSrc();
     // check for second panda bus numbering and convert it to panda numbring e.g., bus10 = bus0
     if (pandas_cnt > 0 && src > 9 && src < 15) {
-      j = msg_count - msg_count1++ - 1;
+      j = msg_count - msg2_count++ - 1;
       src -= 10;
     }
     if (cmsg.getAddress() >= 0x800) {
@@ -710,7 +710,7 @@ void can_send(cereal::Event::Reader &event) {
     do {
       // Try sending can messages. If the receive buffer on the panda is full it will NAK
       // and libusb will try again. After 5ms, it will time out. We will drop the messages.
-      err = libusb_bulk_transfer(dev_handle, 3, (uint8_t*)send, (msg_count-msg_count1)*0x10, &sent, 5);
+      err = libusb_bulk_transfer(dev_handle, 3, (uint8_t*)send, (msg_count-msg2_count)*0x10, &sent, 5);
       if (err == LIBUSB_ERROR_TIMEOUT) {
         LOGW("Transmit buffer full");
         break;
@@ -719,11 +719,11 @@ void can_send(cereal::Event::Reader &event) {
         handle_usb_issue(err, __func__);
       }
     } while(err != 0);
-    if (pandas_cnt > 1 && msg_count1 > 0) {
+    if (dev2_handle != NULL && msg2_count > 0) {
       do {
         // Try sending can messages. If the receive buffer on the panda is full it will NAK
         // and libusb will try again. After 5ms, it will time out. We will drop the messages.
-        err = libusb_bulk_transfer(dev2_handle, 3, (uint8_t*)&send[(msg_count-msg_count1)*4], msg_count1*0x10, &sent, 5);
+        err = libusb_bulk_transfer(dev2_handle, 3, (uint8_t*)&send[(msg_count-msg2_count)*4], msg2_count*0x10, &sent, 5);
         if (err == LIBUSB_ERROR_TIMEOUT) {
           LOGW("Transmit buffer full");
           break;
