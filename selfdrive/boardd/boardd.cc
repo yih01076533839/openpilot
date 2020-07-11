@@ -217,7 +217,7 @@ bool usb_connect() {
   }
   hw_query[0] = 0;
   if (dev2_handle != NULL) {
-    libusb_control_transfer(dev_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
+    libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
   }
 
   if (dev_handle == NULL) { goto fail; }
@@ -342,7 +342,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       if (err != 0) { goto fail;}
       err = libusb_claim_interface(dev2_handle, 0);
       if (err != 0) { goto fail;}
-      libusb_control_transfer(dev_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
+      libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
       libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
       pandas_cnt++;
       pthread_mutex_unlock(&usb_lock);
