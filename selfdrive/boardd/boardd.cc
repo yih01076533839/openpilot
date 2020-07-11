@@ -195,26 +195,30 @@ bool usb_connect() {
   libusb_free_device_list(usb_devs_list, 1);
   libusb_control_transfer(pandas_handles[0], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
   if (pandas_cnt == 1) {
-    if (hw_query[0] == 1) {pandas_cnt--; goto fail; }
+    if (hw_query[0] == 1) {
+      libusb_close(pandas_handles[0]); pandas_cnt--; goto fail;
+    }
     dev_handle = pandas_handles[0];
   } else if (pandas_cnt == 2) {
-    if (hw_query[0] == 1) {
-      hw_query[0] = 0;
-      libusb_control_transfer(pandas_handles[1], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
-      if (hw_query[0] != 1) {
-        dev_handle = pandas_handles[1];
-        dev2_handle = pandas_handles[0];
-      } else {
-        dev_handle = pandas_handles[0];
-        libusb_close(pandas_handles[1]);
-        pandas_cnt--;
-      }
-    } else {
+    int hwty = hw_query[0]; 
+    hw_query[0] = 0;
+    libusb_control_transfer(pandas_handles[1], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
+    if (hw_query[0] == 1 && hwty != 1) {
       dev_handle = pandas_handles[0];
       dev2_handle = pandas_handles[1];
+    } else if (hw_query[0] != 1 && hwty == 1) {
+      dev_handle = pandas_handles[0];
+      dev2_handle = pandas_handles[1];
+    } else {
+      dev_handle = pandas_handles[0];
+      libusb_close(pandas_handles[1]);
+      pandas_cnt--;
     }
   }
   hw_query[0] = 0;
+  if (dev2_handle != NULL) {
+    libusb_control_transfer(dev_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
+  }
 
   if (dev_handle == NULL) { goto fail; }
 
@@ -338,9 +342,11 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       if (err != 0) { goto fail;}
       err = libusb_claim_interface(dev2_handle, 0);
       if (err != 0) { goto fail;}
+      libusb_control_transfer(dev_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
       libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
       pandas_cnt++;
       pthread_mutex_unlock(&usb_lock);
+      LOGW("second Panda connected");
     }
   } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
     if (dev2_handle != NULL && dev == libusb_get_device(dev2_handle)) {
@@ -353,6 +359,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
   return 0;
 fail:
   pthread_mutex_unlock(&usb_lock);
+  if (dev2_handle != NULL) {libusb_close(dev2_handle); dev2_handle = NULL;}
   LOGW("connecting failed, libusb error: %d", err);
   return 0;
 
