@@ -737,15 +737,6 @@ void *can_send_thread(void *crap) {
   SubSocket * subscriber = SubSocket::create(context, "sendcan");
   assert(subscriber != NULL);
 
-  // enable hotpulg notification for second panda arrival and departure
-  // further consideration must be given to multi-threaded implications, see: http://libusb.sourceforge.net/api-1.0/libusb_mtasync.html
-  struct timeval libusb_events_tv = {0,0};
-  if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
-    int err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
-                                           0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[0]);
-    err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT, LIBUSB_HOTPLUG_NO_FLAGS,
-                                           0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
-    assert(err == 0);
   }
 
   // run as fast as messages come in
@@ -761,10 +752,6 @@ void *can_send_thread(void *crap) {
       can_send(event);
       delete msg;
     }
-    // handel pending usb events in non-blocking mode
-    pthread_mutex_lock(&usb_lock);
-    libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
-    pthread_mutex_unlock(&usb_lock);
   }
 
   delete subscriber;
@@ -806,9 +793,23 @@ void *can_health_thread(void *crap) {
   // health = 8011
   PubMaster pm({"health"});
 
+  // enable hotpulg notification for second panda arrival and departure
+  // further consideration must be given to multi-threaded implications, see: http://libusb.sourceforge.net/api-1.0/libusb_mtasync.html
+  struct timeval libusb_events_tv = {0,0};
+  if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
+    int err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
+                                           0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[0]);
+    err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT, LIBUSB_HOTPLUG_NO_FLAGS,
+                                           0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
+    assert(err == 0);
+
   // run at 2hz
   while (!do_exit) {
     can_health(pm);
+
+    // handel pending usb events in non-blocking mode
+    libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
+
     usleep(500*1000);
   }
 
