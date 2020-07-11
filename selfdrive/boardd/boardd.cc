@@ -170,7 +170,7 @@ bool usb_connect() {
   ignition_last = false;
 
   libusb_device **usb_devs_list;
-  libusb_device_handle *pandas_handles[2];
+  libusb_device_handle *pandas_handles[2] = {NULL, NULL};
 
   if (dev_handle != NULL){
     libusb_close(dev_handle);
@@ -199,7 +199,7 @@ bool usb_connect() {
   libusb_free_device_list(usb_devs_list, 1);
   libusb_control_transfer(pandas_handles[0], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
   if (pandas_cnt == 1) {
-    if (hw_query[0] == hw_query[2]) {
+    if (hw_query[0] != hw_query[2]) {
       libusb_close(pandas_handles[0]); pandas_cnt--; goto fail;
     }
     dev_handle = pandas_handles[0];
@@ -334,35 +334,34 @@ void usb_retry_connect() {
 int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
                      libusb_hotplug_event event, void *user_data) {
   int err;
+  LOGW("hotplug event");
   if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
     // connect second panda if prime panda already connected
-    if (dev_handle != NULL && dev2_handle == NULL) {
+    if (pandas_cnt < 2 && dev2_handle == NULL) {
       unsigned char hw_query[2] = {0,1};
-      LOGW("found second Panda, connecting...");
+      libusb_device_handle *panda_handle = NULL;
+      LOGW("found a Panda, connecting...");
       pthread_mutex_lock(&usb_lock);
-      err = libusb_open(dev, &dev2_handle);
+      err = libusb_open(dev, &panda_handle);
       if (err != 0) { goto fail;}
-      err = libusb_set_configuration(dev2_handle, 1);
+      err = libusb_set_configuration(panda_handle, 1);
       if (err != 0) { goto fail;}
-      err = libusb_claim_interface(dev2_handle, 0);
+      err = libusb_claim_interface(panda_handle, 0);
       if (err != 0) { goto fail;}
-      if (hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
-        libusb_control_transfer(dev2_handle, 0xc0, 0xc1, 0, 0, hw_query, 1, 0);
-        if (hw_query[0] == hw_query[1]) {
-          libusb_close(dev2_handle);
-          dev2_handle = NULL;
-          LOGW("Two white panda, abort");
-          goto fail;
-        } else {
-          usb_connect();
+      libusb_control_transfer(panda_handle, 0xc0, 0xc1, 0, 0, hw_query, 1, 0);
+      if (hw_query[0] == hw_query[1]) {
+        if (hw_type != cereal::HealthData::HwType::WHITE_PANDA) {
+          dev2_handle = panda_handle;
+          libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
+          libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
+          pandas_cnt++;
           pthread_mutex_unlock(&usb_lock);
+          LOGW("second Panda connected");
+        } else {
+          libusb_close(panda_handle);
+          pthread_mutex_unlock(&usb_lock);
+          LOGW("Two white pandas, abort");
         }
-      } else {
-        libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
-        libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
-        pandas_cnt++;
-        pthread_mutex_unlock(&usb_lock);
-        LOGW("second Panda connected");
       }
     }
   } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
