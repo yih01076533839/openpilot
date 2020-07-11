@@ -171,7 +171,7 @@ bool usb_connect() {
 
   libusb_device **usb_devs_list;
   libusb_device_handle *pandas_handles[2] = {NULL, NULL};
-  cereal::HealthData::HwType white_panda = cereal::HealthData::HwType::WHITE_PANDA
+  cereal::HealthData::HwType white_panda = cereal::HealthData::HwType::WHITE_PANDA;
     
   if (dev_handle != NULL){
     libusb_close(dev_handle);
@@ -720,6 +720,9 @@ void can_send(cereal::Event::Reader &event) {
         handle_usb_issue(err, __func__);
       }
     } while(err != 0);
+
+    // handel pending usb events in non-blocking mode
+    libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
     if (dev2_handle != NULL && msg2_count > 0) {
       do {
         // Try sending can messages. If the receive buffer on the panda is full it will NAK
