@@ -333,6 +333,7 @@ void usb_retry_connect() {
 }
 
 // only for second panda connecting/disconnecting events
+// must call handle_events() with mutex
 int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
                      libusb_hotplug_event event, void *user_data) {
   int err;
@@ -343,8 +344,6 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       unsigned char hw_query[1] = {0};
       libusb_device_handle *panda_handle = NULL;
       LOGW("found a Panda, connecting...");
-      pthread_mutex_lock(&usb_lock);
-      LOGW("opening Panda...");
       err = libusb_open(dev, &panda_handle);
       if (err != 0) { goto fail;}
       err = libusb_set_configuration(panda_handle, 1);
@@ -358,11 +357,9 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
           libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
           libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
           pandas_cnt++;
-          pthread_mutex_unlock(&usb_lock);
           LOGW("second Panda connected");
         } else {
           libusb_close(panda_handle);
-          pthread_mutex_unlock(&usb_lock);
           LOGW("Two white pandas, abort");
         }
       }
@@ -370,16 +367,13 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
   } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
     if (dev2_handle != NULL && dev == libusb_get_device(dev2_handle)) {
       LOGW("second Panda, disconnected");
-      pthread_mutex_lock(&usb_lock);
       libusb_close(dev2_handle);
       dev2_handle = NULL;
       pandas_cnt--;
-      pthread_mutex_unlock(&usb_lock);
     }
   } 
   return 0;
 fail:
-  pthread_mutex_unlock(&usb_lock);
   if (dev2_handle != NULL) {libusb_close(dev2_handle); dev2_handle = NULL;}
   LOGW("connecting failed, libusb error: %d", err);
   return 0;
