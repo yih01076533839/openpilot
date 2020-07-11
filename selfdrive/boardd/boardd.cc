@@ -339,9 +339,8 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
   int err;
   LOGW("hotplug event");
   if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
-    // connect second panda if prime panda already connected
+    unsigned char hw_query[1] = {0};
     if (pandas_cnt < 2 && dev2_handle == NULL) {
-      unsigned char hw_query[1] = {0};
       libusb_device_handle *panda_handle = NULL;
       LOGW("found a Panda, connecting...");
       err = libusb_open(dev, &panda_handle);
