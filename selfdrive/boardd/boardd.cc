@@ -798,10 +798,10 @@ void *can_recv_thread(void *crap) {
   }
 
   while (!do_exit) {
-    can_recv(pm);
-
     // handel pending usb events in non-blocking mode
     libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
+
+    can_recv(pm);
 
     uint64_t cur_time = nanos_since_boot();
     int64_t remaining = next_frame_time - cur_time;
