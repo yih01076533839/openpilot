@@ -160,7 +160,7 @@ int is_usb_device_panda(libusb_device *dev) {
 // must be called before threads or with mutex
 bool usb_connect() {
   int err, err2;
-  unsigned char hw_query[3] = {0,0,1};
+  unsigned char hw_query[2] = {0,1};
   unsigned char fw_sig_buf[128];
   unsigned char fw_sig_hex_buf[16];
   unsigned char serial_buf[16];
@@ -171,7 +171,8 @@ bool usb_connect() {
 
   libusb_device **usb_devs_list;
   libusb_device_handle *pandas_handles[2] = {NULL, NULL};
-
+  cereal::HealthData::HwType white_panda = cereal::HealthData::HwType::WHITE_PANDA
+    
   if (dev_handle != NULL){
     libusb_close(dev_handle);
     dev_handle = NULL;
@@ -199,16 +200,16 @@ bool usb_connect() {
   libusb_free_device_list(usb_devs_list, 1);
   libusb_control_transfer(pandas_handles[0], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
   if (pandas_cnt == 1) {
-    if (hw_query[0] == hw_query[2]) {
+    if ((cereal::HealthData::HwType)hw_query[0] == white_panda) {
       libusb_close(pandas_handles[0]); pandas_cnt--; goto fail;
     }
     dev_handle = pandas_handles[0];
   } else if (pandas_cnt == 2) {
     libusb_control_transfer(pandas_handles[1], 0xc0, 0xc1, 0, 0, &hw_query[1], 1, TIMEOUT);
-    if (hw_query[1] == hw_query[2] && hw_query[0] != hw_query[2]) {
+    if ((cereal::HealthData::HwType)hw_query[1] == white_panda && (cereal::HealthData::HwType)hw_query[0] != white_panda) {
       dev_handle = pandas_handles[0];
       dev2_handle = pandas_handles[1];
-    } else if (hw_query[1] != hw_query[2] && hw_query[0] == hw_query[2]) {
+    } else if ((cereal::HealthData::HwType)hw_query[1] != white_panda && (cereal::HealthData::HwType)hw_query[0] == white_panda) {
       dev_handle = pandas_handles[1];
       dev2_handle = pandas_handles[0];
     } else {
@@ -338,7 +339,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
   if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
     // connect second panda if prime panda already connected
     if (pandas_cnt < 2 && dev2_handle == NULL) {
-      unsigned char hw_query[2] = {0,1};
+      unsigned char hw_query[1] = {0};
       libusb_device_handle *panda_handle = NULL;
       LOGW("found a Panda, connecting...");
       pthread_mutex_lock(&usb_lock);
@@ -349,7 +350,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       err = libusb_claim_interface(panda_handle, 0);
       if (err != 0) { goto fail;}
       libusb_control_transfer(panda_handle, 0xc0, 0xc1, 0, 0, hw_query, 1, 0);
-      if (hw_query[0] == hw_query[1]) {
+      if ((cereal::HealthData::HwType)hw_query[0] == cereal::HealthData::HwType::WHITE_PANDA) {
         if (hw_type != cereal::HealthData::HwType::WHITE_PANDA) {
           dev2_handle = panda_handle;
           libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
