@@ -199,7 +199,7 @@ bool usb_connect() {
   libusb_free_device_list(usb_devs_list, 1);
   libusb_control_transfer(pandas_handles[0], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
   if (pandas_cnt == 1) {
-    if (hw_query[0] != hw_query[2]) {
+    if (hw_query[0] == hw_query[2]) {
       libusb_close(pandas_handles[0]); pandas_cnt--; goto fail;
     }
     dev_handle = pandas_handles[0];
