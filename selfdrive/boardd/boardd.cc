@@ -349,7 +349,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       if (err != 0) { goto fail;}
       err = libusb_claim_interface(panda_handle, 0);
       if (err != 0) { goto fail;}
-      libusb_control_transfer(panda_handle, 0xc0, 0xc1, 0, 0, hw_qu, 1, 0);
+      libusb_control_transfer(panda_handle, 0xc0, 0xc1, 0, 0, hw_qu, 1, TIMEOUT);
       if ((cereal::HealthData::HwType)(hw_qu[0]) == cereal::HealthData::HwType::WHITE_PANDA) {
         if (hw_type != cereal::HealthData::HwType::WHITE_PANDA) {
           dev2_handle = panda_handle;
