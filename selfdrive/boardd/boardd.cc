@@ -395,7 +395,7 @@ void can_recv(PubMaster &pm) {
   } while(err != 0);
 
   // second panda recv if Receive buffer has empty space
-  if (recv1 < RECV_SIZE && pandas_cnt > 1) {
+  if (recv1 < RECV_SIZE && pandas_cnt > 1 && dev2_handle != NULL) {
     do {
       err = libusb_bulk_transfer(dev2_handle, 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
       if (err == -4) {
