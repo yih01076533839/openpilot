@@ -59,6 +59,7 @@ pthread_mutex_t usb_lock;
 libusb_device_handle *dev2_handle = NULL;
 libusb_hotplug_callback_handle callback_handle[2];
 int pandas_cnt = 0;
+struct timeval libusb_events_tv = {0,0};
 
 bool spoofing_started = false;
 bool fake_send = false;
@@ -792,7 +793,6 @@ void *can_recv_thread(void *crap) {
 
   // enable hotpulg notification for second panda arrival and departure
   // further consideration must be given to multi-threaded implications, see: http://libusb.sourceforge.net/api-1.0/libusb_mtasync.html
-  struct timeval libusb_events_tv = {0,0};
   if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
     int err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[0]);
@@ -802,9 +802,6 @@ void *can_recv_thread(void *crap) {
   }
 
   while (!do_exit) {
-    // handel pending usb events in non-blocking mode
-    libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
-
     can_recv(pm);
 
     uint64_t cur_time = nanos_since_boot();
