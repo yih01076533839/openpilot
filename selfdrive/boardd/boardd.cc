@@ -361,7 +361,14 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
           libusb_close(panda_handle);
           LOGW("Two white pandas, abort");
         }
-      } else {LOGW("%d not white panda, abort", hw_qu[0]);}
+      } else {
+        LOGW("%d not white panda, allowed for now to debug", hw_qu[0]);
+        dev2_handle = panda_handle;
+        libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
+        libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
+        pandas_cnt++;
+        LOGW("second Panda connected");
+      }
     }
   } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
     if (dev2_handle != NULL && dev == libusb_get_device(dev2_handle)) {
