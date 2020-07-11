@@ -56,7 +56,6 @@ libusb_context *ctx = NULL;
 libusb_device_handle *dev_handle = NULL;
 pthread_mutex_t usb_lock;
 
-libusb_device **usb_devs_list;
 libusb_device_handle *dev2_handle = NULL;
 libusb_hotplug_callback_handle callback_handle[2];
 int pandas_cnt = 0;
@@ -161,7 +160,7 @@ int is_usb_device_panda(libusb_device *dev) {
 // must be called before threads or with mutex
 bool usb_connect() {
   int err, err2;
-  unsigned char hw_query[1] = {0};
+  unsigned char hw_query[3] = {0,0,1};
   unsigned char fw_sig_buf[128];
   unsigned char fw_sig_hex_buf[16];
   unsigned char serial_buf[16];
@@ -170,11 +169,16 @@ bool usb_connect() {
 
   ignition_last = false;
 
+  libusb_device **usb_devs_list;
   libusb_device_handle *pandas_handles[2];
 
   if (dev_handle != NULL){
     libusb_close(dev_handle);
     dev_handle = NULL;
+  }
+ if (dev2_handle != NULL){
+    libusb_close(dev2_handle);
+    dev2_handle = NULL;
   }
 
   ssize_t usb_cnt = libusb_get_device_list(ctx, &usb_devs_list);
@@ -195,20 +199,18 @@ bool usb_connect() {
   libusb_free_device_list(usb_devs_list, 1);
   libusb_control_transfer(pandas_handles[0], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
   if (pandas_cnt == 1) {
-    if (hw_query[0] == 1) {
+    if (hw_query[0] == hw_query[2]) {
       libusb_close(pandas_handles[0]); pandas_cnt--; goto fail;
     }
     dev_handle = pandas_handles[0];
   } else if (pandas_cnt == 2) {
-    int hwty = hw_query[0]; 
-    hw_query[0] = 0;
-    libusb_control_transfer(pandas_handles[1], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
-    if (hw_query[0] == 1 && hwty != 1) {
+    libusb_control_transfer(pandas_handles[1], 0xc0, 0xc1, 0, 0, &hw_query[1], 1, TIMEOUT);
+    if (hw_query[1] == hw_query[2] && hw_query[0] != hw_query[2]) {
       dev_handle = pandas_handles[0];
       dev2_handle = pandas_handles[1];
-    } else if (hw_query[0] != 1 && hwty == 1) {
-      dev_handle = pandas_handles[0];
-      dev2_handle = pandas_handles[1];
+    } else if (hw_query[1] != hw_query[2] && hw_query[0] == hw_query[2]) {
+      dev_handle = pandas_handles[1];
+      dev2_handle = pandas_handles[0];
     } else {
       dev_handle = pandas_handles[0];
       libusb_close(pandas_handles[1]);
@@ -218,6 +220,7 @@ bool usb_connect() {
   hw_query[0] = 0;
   if (dev2_handle != NULL) {
     libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
+    libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
   }
 
   if (dev_handle == NULL) { goto fail; }
@@ -334,6 +337,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
   if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
     // connect second panda if prime panda already connected
     if (dev_handle != NULL && dev2_handle == NULL) {
+      unsigned char hw_query[2] = {0,1};
       LOGW("found second Panda, connecting...");
       pthread_mutex_lock(&usb_lock);
       err = libusb_open(dev, &dev2_handle);
@@ -342,18 +346,33 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       if (err != 0) { goto fail;}
       err = libusb_claim_interface(dev2_handle, 0);
       if (err != 0) { goto fail;}
-      libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
-      libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
-      pandas_cnt++;
-      pthread_mutex_unlock(&usb_lock);
-      LOGW("second Panda connected");
+      if (hw_type == cereal::HealthData::HwType::WHITE_PANDA) {
+        libusb_control_transfer(dev2_handle, 0xc0, 0xc1, 0, 0, hw_query, 1, 0);
+        if (hw_query[0] == hw_query[1]) {
+          libusb_close(dev2_handle);
+          dev2_handle = NULL;
+          LOGW("Two white panda, abort");
+          goto fail;
+        } else {
+          usb_connect();
+          pthread_mutex_unlock(&usb_lock);
+        }
+      } else {
+        libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
+        libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
+        pandas_cnt++;
+        pthread_mutex_unlock(&usb_lock);
+        LOGW("second Panda connected");
+      }
     }
   } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
     if (dev2_handle != NULL && dev == libusb_get_device(dev2_handle)) {
       LOGW("second Panda, disconnected");
+      pthread_mutex_lock(&usb_lock);
       libusb_close(dev2_handle);
       dev2_handle = NULL;
       pandas_cnt--;
+      pthread_mutex_unlock(&usb_lock);
     }
   } 
   return 0;
@@ -768,8 +787,22 @@ void *can_recv_thread(void *crap) {
   const uint64_t dt = 10000000ULL;
   uint64_t next_frame_time = nanos_since_boot() + dt;
 
+  // enable hotpulg notification for second panda arrival and departure
+  // further consideration must be given to multi-threaded implications, see: http://libusb.sourceforge.net/api-1.0/libusb_mtasync.html
+  struct timeval libusb_events_tv = {0,0};
+  if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
+    int err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
+                                           0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[0]);
+    err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT, LIBUSB_HOTPLUG_NO_FLAGS,
+                                           0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
+    assert(err == 0);
+  }
+
   while (!do_exit) {
     can_recv(pm);
+
+    // handel pending usb events in non-blocking mode
+    libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
 
     uint64_t cur_time = nanos_since_boot();
     int64_t remaining = next_frame_time - cur_time;
@@ -791,23 +824,9 @@ void *can_health_thread(void *crap) {
   // health = 8011
   PubMaster pm({"health"});
 
-  // enable hotpulg notification for second panda arrival and departure
-  // further consideration must be given to multi-threaded implications, see: http://libusb.sourceforge.net/api-1.0/libusb_mtasync.html
-  struct timeval libusb_events_tv = {0,0};
-  if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
-    int err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED, LIBUSB_HOTPLUG_NO_FLAGS,
-                                           0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[0]);
-    err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT, LIBUSB_HOTPLUG_NO_FLAGS,
-                                           0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
-    assert(err == 0);
-  }
-
   // run at 2hz
   while (!do_exit) {
     can_health(pm);
-
-    // handel pending usb events in non-blocking mode
-    libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
 
     usleep(500*1000);
   }
