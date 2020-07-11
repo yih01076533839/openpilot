@@ -423,6 +423,7 @@ void can_recv(PubMaster &pm) {
           pandas_cnt--;
           libusb_close(dev2_handle);
           dev2_handle = NULL;
+          break;
       } else if (err != 0) { handle_usb_issue(err, __func__); }
       if (err == -8) { LOGE_100("overflow got 0x%x", recv2); };
       // timeout is okay to exit, recv still happened
@@ -722,8 +723,6 @@ void can_send(cereal::Event::Reader &event) {
       }
     } while(err != 0);
 
-    // handel pending usb events in non-blocking mode
-    libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
     if (dev2_handle != NULL && msg2_count > 0) {
       do {
         // Try sending can messages. If the receive buffer on the panda is full it will NAK
@@ -802,6 +801,9 @@ void *can_recv_thread(void *crap) {
   }
 
   while (!do_exit) {
+    // handel pending usb events in non-blocking mode
+    libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
+
     can_recv(pm);
 
     uint64_t cur_time = nanos_since_boot();
