@@ -361,7 +361,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
           libusb_close(panda_handle);
           LOGW("Two white pandas, abort");
         }
-      } else {LOGW("%d not white panda, abort", hw_query[0]);}
+      } else {LOGW("%d not white panda, abort", hw_qu[0]);}
     }
   } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
     if (dev2_handle != NULL && dev == libusb_get_device(dev2_handle)) {
