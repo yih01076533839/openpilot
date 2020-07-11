@@ -344,6 +344,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       libusb_device_handle *panda_handle = NULL;
       LOGW("found a Panda, connecting...");
       pthread_mutex_lock(&usb_lock);
+      LOGW("opening Panda...");
       err = libusb_open(dev, &panda_handle);
       if (err != 0) { goto fail;}
       err = libusb_set_configuration(panda_handle, 1);
@@ -414,6 +415,8 @@ void can_recv(PubMaster &pm) {
     if (err == -7) { break; }
   } while(err != 0);
 
+  // handel pending usb events in non-blocking mode
+  libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
   // second panda recv if Receive buffer has empty space
   if (dev2_handle != NULL && recv1 < RECV_SIZE) {
     do {
@@ -725,6 +728,8 @@ void can_send(cereal::Event::Reader &event) {
 
     if (dev2_handle != NULL && msg2_count > 0) {
       do {
+        // handel pending usb events in non-blocking mode
+        libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
         // Try sending can messages. If the receive buffer on the panda is full it will NAK
         // and libusb will try again. After 5ms, it will time out. We will drop the messages.
         err = libusb_bulk_transfer(dev2_handle, 3, (uint8_t*)&send[(msg_count-msg2_count)*4], msg2_count*0x10, &sent, 5);
@@ -736,6 +741,7 @@ void can_send(cereal::Event::Reader &event) {
           pandas_cnt--;
           libusb_close(dev2_handle);
           dev2_handle = NULL;
+          break;
         } else if (err != 0 || msg_count*0x10 != sent) {
           LOGW("Error");
           handle_usb_issue(err, __func__);
@@ -801,9 +807,6 @@ void *can_recv_thread(void *crap) {
   }
 
   while (!do_exit) {
-    // handel pending usb events in non-blocking mode
-    libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
-
     can_recv(pm);
 
     uint64_t cur_time = nanos_since_boot();
