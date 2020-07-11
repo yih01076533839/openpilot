@@ -737,8 +737,6 @@ void *can_send_thread(void *crap) {
   SubSocket * subscriber = SubSocket::create(context, "sendcan");
   assert(subscriber != NULL);
 
-  }
-
   // run as fast as messages come in
   while (!do_exit) {
     Message * msg = subscriber->receive();
@@ -802,6 +800,7 @@ void *can_health_thread(void *crap) {
     err = libusb_hotplug_register_callback(ctx, LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT, LIBUSB_HOTPLUG_NO_FLAGS,
                                            0xbbaa, 0xddcc, -1, hotplug_callback, NULL, &callback_handle[1]);
     assert(err == 0);
+  }
 
   // run at 2hz
   while (!do_exit) {
