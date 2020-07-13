@@ -443,7 +443,7 @@ void can_recv(PubMaster &pm) {
   } else if (recv == RECV_SIZE) {
     LOGW("Receive buffer full");
   }
-  if (recv2 > 0) { LOGW("second Panda recevied %d message/s", recv2);}
+
   // create message
   capnp::MallocMessageBuilder msg;
   cereal::Event::Builder event = msg.initRoot<cereal::Event>();
@@ -693,7 +693,7 @@ void can_send(cereal::Event::Reader &event) {
     uint8_t src = cmsg.getSrc();
     // check for second panda bus numbering and convert it to panda numbring e.g., bus10 = bus0
     if (pandas_cnt > 0 && src > 9 && src < 15) {
-      j = msg_count - 1 - msg2_count++;
+      j = msg_count - msg2_count++ - 1;
       src -= 10;
     }
     if (cmsg.getAddress() >= 0x800) {
@@ -707,7 +707,6 @@ void can_send(cereal::Event::Reader &event) {
     send[j*4+1] = cmsg.getDat().size() | (src << 4);
     memcpy(&send[j*4+2], cmsg.getDat().begin(), cmsg.getDat().size());
   }
-  if (msg2_count > 0) { LOGW("sending %d message/s to second Panda", msg2_count);
 
   // send to board
   int sent;
