@@ -161,7 +161,7 @@ int is_usb_device_panda(libusb_device *dev) {
 // must be called before threads or with mutex
 bool usb_connect() {
   int err, err2;
-  unsigned char hw_query[2] = {0,1};
+  unsigned char hw_query[2] = {0,0};
   unsigned char fw_sig_buf[128];
   unsigned char fw_sig_hex_buf[16];
   unsigned char serial_buf[16];
@@ -172,7 +172,6 @@ bool usb_connect() {
 
   libusb_device **usb_devs_list;
   libusb_device_handle *pandas_handles[2] = {NULL, NULL};
-  cereal::HealthData::HwType white_panda = cereal::HealthData::HwType::WHITE_PANDA;
     
   if (dev_handle != NULL){
     libusb_close(dev_handle);
@@ -199,18 +198,19 @@ bool usb_connect() {
     }
   }
   libusb_free_device_list(usb_devs_list, 1);
+  if (pandas_cnt < 1) { goto fail; }
   libusb_control_transfer(pandas_handles[0], 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
   if (pandas_cnt == 1) {
-    if ((cereal::HealthData::HwType)hw_query[0] == white_panda) {
+    if (hw_query[0] == 0 || hw_query[0] == 1) {
       libusb_close(pandas_handles[0]); pandas_cnt--; goto fail;
     }
     dev_handle = pandas_handles[0];
-  } else if (pandas_cnt == 2) {
+  } else if (pandas_cnt > 1) {
     libusb_control_transfer(pandas_handles[1], 0xc0, 0xc1, 0, 0, &hw_query[1], 1, TIMEOUT);
-    if ((cereal::HealthData::HwType)hw_query[1] == white_panda && (cereal::HealthData::HwType)hw_query[0] != white_panda) {
+    if (!(hw_query[0] == 0 || hw_query[0] == 1) && (hw_query[1] == 0 || hw_query[1] == 1)) {
       dev_handle = pandas_handles[0];
       dev2_handle = pandas_handles[1];
-    } else if ((cereal::HealthData::HwType)hw_query[1] != white_panda && (cereal::HealthData::HwType)hw_query[0] == white_panda) {
+    } else if ((hw_query[0] == 0 || hw_query[0] == 1) && !(hw_query[1] == 0 || hw_query[1] == 1)) {
       dev_handle = pandas_handles[1];
       dev2_handle = pandas_handles[0];
     } else {
@@ -224,8 +224,6 @@ bool usb_connect() {
     libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
     libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
   }
-
-  if (dev_handle == NULL) { goto fail; }
 
 //  err = libusb_set_configuration(dev_handle, 1);
 //  if (err != 0) { goto fail; }
@@ -339,35 +337,26 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
   int err;
   LOGW("hotplug event");
   if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
-    unsigned char hw_qu[1] = {0};
-    if (pandas_cnt < 2 && dev2_handle == NULL) {
+    if (pandas_cnt == 1) {
+      unsigned char hw_query[1] = {0};
       libusb_device_handle *panda_handle = NULL;
-      LOGW("found a Panda, connecting...");
+      LOGW("found second Panda, connecting...");
       err = libusb_open(dev, &panda_handle);
       if (err != 0) { goto fail;}
       err = libusb_set_configuration(panda_handle, 1);
       if (err != 0) { goto fail;}
       err = libusb_claim_interface(panda_handle, 0);
       if (err != 0) { goto fail;}
-      libusb_control_transfer(panda_handle, 0xc0, 0xc1, 0, 0, hw_qu, 1, TIMEOUT);
-      if ((cereal::HealthData::HwType)(hw_qu[0]) == cereal::HealthData::HwType::WHITE_PANDA) {
-        if (hw_type != cereal::HealthData::HwType::WHITE_PANDA) {
-          dev2_handle = panda_handle;
-          libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
-          libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
-          pandas_cnt++;
-          LOGW("second Panda connected");
-        } else {
-          libusb_close(panda_handle);
-          LOGW("Two white pandas, abort");
-        }
-      } else {
-        LOGW("%d not white panda, allowed for now to debug", hw_qu[0]);
+      libusb_control_transfer(panda_handle, 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
+      if (hw_query[0] == 0 || hw_query[0] == 1) {
         dev2_handle = panda_handle;
         libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
         libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
         pandas_cnt++;
         LOGW("second Panda connected");
+      } else {
+        LOGW("second Panda is not white panda, abort");
+        libusb_close(panda_handle);
       }
     }
   } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
@@ -397,7 +386,7 @@ void handle_usb_issue(int err, const char func[]) {
 
 void can_recv(PubMaster &pm) {
   int err;
-  uint32_t data[RECV_SIZE/4];
+  uint32_t data[RECV_SIZE/4], data2[RECV_SIZE/4];
   int recv, recv1, recv2;
   uint32_t f1, f2;
 
@@ -418,9 +407,9 @@ void can_recv(PubMaster &pm) {
   // handel pending usb events in non-blocking mode
   libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
   // second panda recv if Receive buffer has empty space
-  if (dev2_handle != NULL && recv1 < RECV_SIZE) {
+  if (dev2_handle != NULL) {
     do {
-      err = libusb_bulk_transfer(dev2_handle, 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
+      err = libusb_bulk_transfer(dev2_handle, 0x81, (uint8_t*)data2, RECV_SIZE, &recv2, TIMEOUT);
       if (err == -4) {
           LOGW("second Panda connection lost!!");
           pandas_cnt--;
@@ -428,7 +417,7 @@ void can_recv(PubMaster &pm) {
           dev2_handle = NULL;
           break;
       } else if (err != 0) { handle_usb_issue(err, __func__); }
-      if (err == -8) { LOGE_100("overflow got 0x%x", recv2); };
+      if (err == -8) { LOGE_100("second Panda overflow got 0x%x", recv2); };
       // timeout is okay to exit, recv still happened
       if (err == -7) { break; }
     } while(err != 0);
@@ -440,7 +429,7 @@ void can_recv(PubMaster &pm) {
   recv = recv1 + recv2;
   if (recv <= 0) {
     return;
-  } else if (recv == RECV_SIZE) {
+  } else if (recv == RECV_SIZE * pandas_cnt) {
     LOGW("Receive buffer full");
   }
 
@@ -448,12 +437,12 @@ void can_recv(PubMaster &pm) {
   capnp::MallocMessageBuilder msg;
   cereal::Event::Builder event = msg.initRoot<cereal::Event>();
   event.setLogMonoTime(start_time);
-  size_t num_msg = recv / 0x10;
-  size_t num_msg1 = num_msg;
-  auto canData = event.initCan(num_msg);
+  size_t num_msg1 = recv1 / 0x10;
+  size_t num_msg2 = recv2 / 0x10;
+  auto canData = event.initCan(num_msg1+num_msg2);
 
   // populate message
-  for (int i = 0; i < num_msg; i++) {
+  for (int i = 0; i < num_msg1; i++) {
     if (data[i*4] & 4) {
       // extended
       canData[i].setAddress(data[i*4] >> 3);
@@ -466,7 +455,24 @@ void can_recv(PubMaster &pm) {
     int len = data[i*4+1]&0xF;
     canData[i].setDat(kj::arrayPtr((uint8_t*)&data[i*4+2], len));
     // second panda bus numbring (bus +10), e.g., bus0 = bus10
-    canData[i].setSrc(((data[i*4+1] + (i < num_msg1 ? 0 : 10)) >> 4) & 0xff);
+    canData[i].setSrc((data[i*4+1] >> 4) & 0xff);
+  }
+
+  // populate message
+  for (int i = 0, j = num_msg1; i < num_msg2; i++, j++) {
+    if (data2[i*4] & 4) {
+      // extended
+      canData[j].setAddress(data2[i*4] >> 3);
+      //printf("got extended: %x\n", data[i*4] >> 3);
+    } else {
+      // normal
+      canData[j].setAddress(data2[i*4] >> 21);
+    }
+    canData[j].setBusTime(data2[i*4+1] >> 16);
+    int len = data2[i*4+1]&0xF;
+    canData[j].setDat(kj::arrayPtr((uint8_t*)&data2[i*4+2], len));
+    // second panda bus numbring (bus +10), e.g., bus0 = bus10
+    canData[j].setSrc(((data2[i*4+1] >> 4) & 0xff) + 10);
   }
 
   pm.send("can", msg);
@@ -692,7 +698,7 @@ void can_send(cereal::Event::Reader &event) {
     j = i - msg2_count;
     uint8_t src = cmsg.getSrc();
     // check for second panda bus numbering and convert it to panda numbring e.g., bus10 = bus0
-    if (pandas_cnt > 0 && src > 9 && src < 15) {
+    if (src > 9 && src < 15) {
       j = msg_count - msg2_count++ - 1;
       src -= 10;
     }
