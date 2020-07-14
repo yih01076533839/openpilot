@@ -386,7 +386,7 @@ void handle_usb_issue(int err, const char func[]) {
 
 void can_recv(PubMaster &pm) {
   int err;
-  uint32_t data[RECV_SIZE/4];
+  uint32_t data[RECV_SIZE/4], data2[RECV_SIZE/4];
   int recv, recv1, recv2;
   uint32_t f1, f2;
 
@@ -408,7 +408,6 @@ void can_recv(PubMaster &pm) {
   libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
   // second panda recv if Receive buffer has empty space
   if (dev2_handle != NULL) {
-    uint32_t data2[RECV_SIZE/4];
     do {
       err = libusb_bulk_transfer(dev2_handle, 0x81, (uint8_t*)data2, RECV_SIZE, &recv2, TIMEOUT);
       if (err == -4) {
@@ -440,7 +439,7 @@ void can_recv(PubMaster &pm) {
   event.setLogMonoTime(start_time);
   size_t num_msg1 = recv1 / 0x10;
   size_t num_msg2 = recv2 / 0x10;
-  auto canData = event.initCan(num_msg);
+  auto canData = event.initCan(num_msg1+num_msg2);
 
   // populate message
   for (int i = 0; i < num_msg1; i++) {
@@ -463,17 +462,17 @@ void can_recv(PubMaster &pm) {
   for (int i = 0, j = num_msg1; i < num_msg2; i++, j++) {
     if (data2[i*4] & 4) {
       // extended
-      canData[j].setAddress(data[i*4] >> 3);
+      canData[j].setAddress(data2[i*4] >> 3);
       //printf("got extended: %x\n", data[i*4] >> 3);
     } else {
       // normal
-      canData[j].setAddress(data[i*4] >> 21);
+      canData[j].setAddress(data2[i*4] >> 21);
     }
-    canData[j].setBusTime(data[i*4+1] >> 16);
-    int len = data[i*4+1]&0xF;
-    canData[j].setDat(kj::arrayPtr((uint8_t*)&data[i*4+2], len));
+    canData[j].setBusTime(data2[i*4+1] >> 16);
+    int len = data2[i*4+1]&0xF;
+    canData[j].setDat(kj::arrayPtr((uint8_t*)&data2[i*4+2], len));
     // second panda bus numbring (bus +10), e.g., bus0 = bus10
-    canData[j].setSrc(((data[i*4+1] >> 4) & 0xff) + 10);
+    canData[j].setSrc(((data2[i*4+1] >> 4) & 0xff) + 10);
   }
 
   pm.send("can", msg);
