@@ -337,10 +337,10 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
   int err;
   LOGW("hotplug event");
   if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
-    unsigned char hw_query[1] = {0};
-    if (pandas_cnt < 2 && dev2_handle == NULL) {
+    if (pandas_cnt == 1) {
+      unsigned char hw_query[1] = {0};
       libusb_device_handle *panda_handle = NULL;
-      LOGW("found a Panda, connecting...");
+      LOGW("found second Panda, connecting...");
       err = libusb_open(dev, &panda_handle);
       if (err != 0) { goto fail;}
       err = libusb_set_configuration(panda_handle, 1);
@@ -355,7 +355,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
         pandas_cnt++;
         LOGW("second Panda connected");
       } else {
-        LOGW("panda is not white panda, disconnected");
+        LOGW("second Panda is not white panda, abort");
         libusb_close(panda_handle);
       }
     }
