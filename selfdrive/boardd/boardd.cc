@@ -407,9 +407,10 @@ void can_recv(PubMaster &pm) {
   // handel pending usb events in non-blocking mode
   libusb_handle_events_timeout_completed(ctx, &libusb_events_tv, NULL);
   // second panda recv if Receive buffer has empty space
-  if (dev2_handle != NULL && recv1 < RECV_SIZE) {
+  if (dev2_handle != NULL) {
+    uint32_t data2[RECV_SIZE/4];
     do {
-      err = libusb_bulk_transfer(dev2_handle, 0x81, (uint8_t*)&data[recv1], (RECV_SIZE - recv1), &recv2, TIMEOUT);
+      err = libusb_bulk_transfer(dev2_handle, 0x81, (uint8_t*)data2, RECV_SIZE, &recv2, TIMEOUT);
       if (err == -4) {
           LOGW("second Panda connection lost!!");
           pandas_cnt--;
@@ -417,7 +418,7 @@ void can_recv(PubMaster &pm) {
           dev2_handle = NULL;
           break;
       } else if (err != 0) { handle_usb_issue(err, __func__); }
-      if (err == -8) { LOGE_100("overflow got 0x%x", recv2); };
+      if (err == -8) { LOGE_100("second Panda overflow got 0x%x", recv2); };
       // timeout is okay to exit, recv still happened
       if (err == -7) { break; }
     } while(err != 0);
@@ -429,7 +430,7 @@ void can_recv(PubMaster &pm) {
   recv = recv1 + recv2;
   if (recv <= 0) {
     return;
-  } else if (recv == RECV_SIZE) {
+  } else if (recv == RECV_SIZE * pandas_cnt) {
     LOGW("Receive buffer full");
   }
 
@@ -437,12 +438,12 @@ void can_recv(PubMaster &pm) {
   capnp::MallocMessageBuilder msg;
   cereal::Event::Builder event = msg.initRoot<cereal::Event>();
   event.setLogMonoTime(start_time);
-  size_t num_msg = recv / 0x10;
-  size_t num_msg1 = num_msg;
+  size_t num_msg1 = recv1 / 0x10;
+  size_t num_msg2 = recv2 / 0x10;
   auto canData = event.initCan(num_msg);
 
   // populate message
-  for (int i = 0; i < num_msg; i++) {
+  for (int i = 0; i < num_msg1; i++) {
     if (data[i*4] & 4) {
       // extended
       canData[i].setAddress(data[i*4] >> 3);
@@ -455,7 +456,24 @@ void can_recv(PubMaster &pm) {
     int len = data[i*4+1]&0xF;
     canData[i].setDat(kj::arrayPtr((uint8_t*)&data[i*4+2], len));
     // second panda bus numbring (bus +10), e.g., bus0 = bus10
-    canData[i].setSrc(((data[i*4+1] + (i < num_msg1 ? 0 : 10)) >> 4) & 0xff);
+    canData[i].setSrc((data[i*4+1] >> 4) & 0xff);
+  }
+
+  // populate message
+  for (int i = 0, j = num_msg1; i < num_msg2; i++, j++) {
+    if (data2[i*4] & 4) {
+      // extended
+      canData[j].setAddress(data[i*4] >> 3);
+      //printf("got extended: %x\n", data[i*4] >> 3);
+    } else {
+      // normal
+      canData[j].setAddress(data[i*4] >> 21);
+    }
+    canData[j].setBusTime(data[i*4+1] >> 16);
+    int len = data[i*4+1]&0xF;
+    canData[j].setDat(kj::arrayPtr((uint8_t*)&data[i*4+2], len));
+    // second panda bus numbring (bus +10), e.g., bus0 = bus10
+    canData[j].setSrc(((data[i*4+1] >> 4) & 0xff) + 10);
   }
 
   pm.send("can", msg);
@@ -681,7 +699,7 @@ void can_send(cereal::Event::Reader &event) {
     j = i - msg2_count;
     uint8_t src = cmsg.getSrc();
     // check for second panda bus numbering and convert it to panda numbring e.g., bus10 = bus0
-    if (pandas_cnt > 0 && src > 9 && src < 15) {
+    if (src > 9 && src < 15) {
       j = msg_count - msg2_count++ - 1;
       src -= 10;
     }
