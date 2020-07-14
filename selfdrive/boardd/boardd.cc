@@ -337,7 +337,7 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
   int err;
   LOGW("hotplug event");
   if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
-    unsigned char hw_qu[1] = {0};
+    unsigned char hw_query[1] = {0};
     if (pandas_cnt < 2 && dev2_handle == NULL) {
       libusb_device_handle *panda_handle = NULL;
       LOGW("found a Panda, connecting...");
@@ -347,25 +347,16 @@ int hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
       if (err != 0) { goto fail;}
       err = libusb_claim_interface(panda_handle, 0);
       if (err != 0) { goto fail;}
-      libusb_control_transfer(panda_handle, 0xc0, 0xc1, 0, 0, hw_qu, 1, TIMEOUT);
-      if ((cereal::HealthData::HwType)(hw_qu[0]) == cereal::HealthData::HwType::WHITE_PANDA) {
-        if (hw_type != cereal::HealthData::HwType::WHITE_PANDA) {
-          dev2_handle = panda_handle;
-          libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
-          libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
-          pandas_cnt++;
-          LOGW("second Panda connected");
-        } else {
-          libusb_close(panda_handle);
-          LOGW("Two white pandas, abort");
-        }
-      } else {
-        LOGW("%d not white panda, allowed for now to debug", hw_qu[0]);
+      libusb_control_transfer(panda_handle, 0xc0, 0xc1, 0, 0, hw_query, 1, TIMEOUT);
+      if (hw_query[0] == 0 || hw_query[0] == 1) {
         dev2_handle = panda_handle;
         libusb_control_transfer(dev2_handle, 0xc0, 0xe6, (uint16_t)(cereal::HealthData::UsbPowerMode::CLIENT), 0, NULL, 0, TIMEOUT);
         libusb_control_transfer(dev2_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
         pandas_cnt++;
         LOGW("second Panda connected");
+      } else {
+        LOGW("panda is not white panda, disconnected");
+        libusb_close(panda_handle);
       }
     }
   } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
