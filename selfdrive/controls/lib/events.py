@@ -171,7 +171,7 @@ class EngagementAlert(Alert):
 
 def below_steer_speed_alert(CP, sm, metric):
   speed = int(round(CP.minSteerSpeed * (CV.MS_TO_KPH if metric else CV.MS_TO_MPH)))
-  unit = "kph" if metric else "mph"
+  unit = "km/h" if metric else "mi/h"
   return Alert(
     "TAKE CONTROL",
     "Steer Unavailable Below %d %s" % (speed, unit),
@@ -180,7 +180,7 @@ def below_steer_speed_alert(CP, sm, metric):
 
 def calibration_incomplete_alert(CP, sm, metric):
   speed = int(Filter.MIN_SPEED * (CV.MS_TO_KPH if metric else CV.MS_TO_MPH))
-  unit = "kph" if metric else "mph"
+  unit = "km/h" if metric else "mi/h"
   return Alert(
     "Calibration in Progress: %d%%" % sm['liveCalibration'].calPerc,
     "Drive Above %d %s" % (speed, unit),
@@ -200,6 +200,14 @@ def wrong_car_mode_alert(CP, sm, metric):
   if CP.carName == "honda":
     text = "Main Switch Off"
   return NoEntryAlert(text, duration_hud_alert=0.)
+
+def auto_lane_change_alert(CP, sm, metric):
+  alc_timer = sm['pathPlan'].autoLaneChangeTimer
+  return Alert(
+    "Auto Lane Change starts in (%d)" % alc_timer,
+    "Monitor Other Vehicles",
+    AlertStatus.normal, AlertSize.mid,
+    Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, .0, .1, .1, alert_rate=0.75)
 
 EVENTS = {
   # ********** events with no alerts **********
@@ -486,6 +494,10 @@ EVENTS = {
       "",
       AlertStatus.userPrompt, AlertSize.small,
       Priority.LOW, VisualAlert.none, AudibleAlert.none, 0., 0., .1),
+  },
+
+  EventName.autoLaneChange: {
+    ET.WARNING: auto_lane_change_alert,
   },
 
   # ********** events that affect controls state transitions **********

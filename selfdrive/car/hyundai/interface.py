@@ -25,7 +25,9 @@ class CarInterface(CarInterfaceBase):
     ret = CarInterfaceBase.get_std_params(candidate, fingerprint, has_relay)
 
     ret.carName = "hyundai"
-    ret.safetyModel = car.CarParams.SafetyModel.hyundai
+    ret.safetyModel = car.CarParams.SafetyModel.hyundaiLegacy
+    if candidate in [CAR.SONATA]:
+      ret.safetyModel = car.CarParams.SafetyModel.hyundai
 
     # Most Hyundai car ports are community features for now
     ret.communityFeature = candidate not in [CAR.SONATA]
@@ -37,14 +39,12 @@ class CarInterface(CarInterfaceBase):
 
     if candidate in [CAR.SANTA_FE, CAR.SANTA_FE_1]:
       ret.lateralTuning.pid.kf = 0.00005
-      ret.mass = 3982. * CV.LB_TO_KG + STD_CARGO_KG
+      ret.mass = 1694 + STD_CARGO_KG
       ret.wheelbase = 2.766
-      # Values from optimizer
-      ret.steerRatio = 16.55  # 13.8 is spec end-to-end
-      tire_stiffness_factor = 0.82
-      ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[9., 22.], [9., 22.]]
-      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.2, 0.35], [0.05, 0.09]]
-    elif candidate == CAR.SONATA:
+      ret.steerRatio = 13.8 * 1.15  # 13.8 is spec end-to-end
+      ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
+      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]]
+    elif candidate in [CAR.SONATA, CAR.SONATA_H]:
       ret.lateralTuning.pid.kf = 0.00005
       ret.mass = 1513. + STD_CARGO_KG
       ret.wheelbase = 2.84
@@ -56,13 +56,6 @@ class CarInterface(CarInterfaceBase):
       ret.lateralTuning.pid.kf = 0.00005
       ret.mass = 4497. * CV.LB_TO_KG
       ret.wheelbase = 2.804
-      ret.steerRatio = 13.27 * 1.15   # 15% higher at the center seems reasonable
-      ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
-      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]]
-    elif candidate == CAR.SONATA_H:
-      ret.lateralTuning.pid.kf = 0.00005
-      ret.mass = 1513. + STD_CARGO_KG
-      ret.wheelbase = 2.84
       ret.steerRatio = 13.27 * 1.15   # 15% higher at the center seems reasonable
       ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
       ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]]
@@ -119,16 +112,18 @@ class CarInterface(CarInterfaceBase):
       ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
       ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]]
     elif candidate == CAR.KIA_STINGER:
-      ret.lateralTuning.pid.kf = 0.00005
-      ret.steerActuatorDelay = 0.08 # Stinger Limited AWD 3.3T stock value (Tunder's 2020) 
-      ret.steerLimitTimer = 0.01 # no timer on value changes, lightning fast up or down (Tunder's 2020)
-      tire_stiffness_factor = 0.7 # LiveParameters (Tunder's 2020)
-      ret.steerRateCost = 0.25 # i don't know what this actually does, but the car drives much better this way than at 1.0.  (Tunder)
-      ret.mass = 1825. + STD_CARGO_KG
+      ret.lateralTuning.init('indi')
+      ret.lateralTuning.indi.innerLoopGain = 3.0
+      ret.lateralTuning.indi.outerLoopGain = 2.0
+      ret.lateralTuning.indi.timeConstant = 1.0
+      ret.lateralTuning.indi.actuatorEffectiveness = 1.5
+      ret.steerActuatorDelay = 0.08 # Stinger GT Limited AWD 3.3T stock value (Tunder's 2020) 
+      ret.steerLimitTimer = 0.4 # stock is 0.01 but 0.04 seems to work well
+      tire_stiffness_factor = 1.125 # LiveParameters (Tunder's 2020)
+      ret.steerRateCost = 1.0
+      ret.mass = 1825.0 + STD_CARGO_KG
       ret.wheelbase = 2.906 # https://www.kia.com/us/en/stinger/specs
-      ret.steerRatio = 10.28   # measured by wheel alignment machine/reported steering angle by OP, still being worked on.  2020 GT Limited AWD has a variable steering ratio ultimately ending in 10.28.  The ratio at 0-1 deg is unknown, but likely higher than 10.28 to soften steering movements at midline (Tunder)
-      ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
-      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.13], [0.05]] # any higher p value and it oscillates forever.  much lower and it doesn't turn enough (lazy)
+      ret.steerRatio = 13.56   # 10.28 measured by wheel alignment machine/reported steering angle by OP. 2020 GT Limited AWD has a variable steering ratio ultimately ending in 10.28.  13.56 after 1200km in LiveParamaters (Tunder)
     elif candidate == CAR.KONA:
       ret.lateralTuning.pid.kf = 0.00006
       ret.mass = 1275. + STD_CARGO_KG
@@ -141,7 +136,7 @@ class CarInterface(CarInterfaceBase):
       ret.lateralTuning.pid.kf = 0.00006
       ret.mass = 1685. + STD_CARGO_KG
       ret.wheelbase = 2.7
-      ret.steerRatio = 13.73  # Spec
+      ret.steerRatio = 13.73   
       tire_stiffness_factor = 0.385
       ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
       ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]]
@@ -153,7 +148,7 @@ class CarInterface(CarInterfaceBase):
       tire_stiffness_factor = 0.385
       ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
       ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]]
-      ret.minSteerSpeed = 32 * CV.MPH_TO_MS
+      #ret.minSteerSpeed = 32 * CV.MPH_TO_MS
     elif candidate == CAR.KIA_FORTE:
       ret.lateralTuning.pid.kf = 0.00005
       ret.mass = 3558. * CV.LB_TO_KG
@@ -162,22 +157,6 @@ class CarInterface(CarInterfaceBase):
       tire_stiffness_factor = 0.5
       ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
       ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]]
-    elif candidate == CAR.KIA_CEED:
-      ret.lateralTuning.pid.kf = 0.00005
-      ret.mass = 1350. + STD_CARGO_KG
-      ret.wheelbase = 2.65
-      ret.steerRatio = 13.75
-      tire_stiffness_factor = 0.5
-      ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
-      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]]
-    elif candidate == CAR.KIA_SPORTAGE:
-      ret.lateralTuning.pid.kf = 0.00005
-      ret.mass = 1985. + STD_CARGO_KG
-      ret.wheelbase = 2.78
-      ret.steerRatio = 14.4 * 1.1   # 10% higher at the center seems reasonable
-      ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
-      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]]
-      ret.minSteerSpeed = 0.
     elif candidate == CAR.KIA_CEED:
       ret.lateralTuning.pid.kf = 0.00005
       ret.mass = 1350. + STD_CARGO_KG
@@ -227,10 +206,6 @@ class CarInterface(CarInterfaceBase):
       ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
       ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]]
 
-    # these cars require a special panda safety mode due to missing counters and checksums in the messages
-    if candidate in [CAR.HYUNDAI_GENESIS, CAR.IONIQ_EV_LTD, CAR.IONIQ, CAR.KONA_EV]:
-      ret.safetyModel = car.CarParams.SafetyModel.hyundaiLegacy
-
     ret.centerToFront = ret.wheelbase * 0.4
 
     # TODO: get actual value, for now starting with reasonable value for
@@ -247,19 +222,19 @@ class CarInterface(CarInterfaceBase):
     ret.steerRatioRear = 0.
     ret.steerControlType = car.CarParams.SteerControlType.torque
 
-    ret.longitudinalTuning.kpBP = [0., 5., 35.]
-    ret.longitudinalTuning.kpV = [1.2, 0.8, 0.5]
-    ret.longitudinalTuning.kiBP = [0., 35.]
-    ret.longitudinalTuning.kiV = [0.18, 0.12]
-    ret.longitudinalTuning.deadzoneBP = [0.]
-    ret.longitudinalTuning.deadzoneV = [0.]
+    ret.longitudinalTuning.kpBP = [0., 10., 40.]
+    ret.longitudinalTuning.kpV = [1.2, 0.6, 0.2]
+    ret.longitudinalTuning.kiBP = [0., 10., 30., 40.]
+    ret.longitudinalTuning.kiV = [0.05, 0.02, 0.01, 0.005]
+    ret.longitudinalTuning.deadzoneBP = [0., 40]
+    ret.longitudinalTuning.deadzoneV = [0., 0.02]
 
 
     # steer, gas, brake limitations VS speed
     ret.steerMaxBP = [0.]
     ret.steerMaxV = [1.0]
-    ret.gasMaxBP = [0.]
-    ret.gasMaxV = [0.5]
+    ret.gasMaxBP = [0., 10., 40.]
+    ret.gasMaxV = [0.5, 0.5, 0.5]
     ret.brakeMaxBP = [0., 20.]
     ret.brakeMaxV = [1., 0.8]
 
@@ -274,8 +249,8 @@ class CarInterface(CarInterfaceBase):
     ret.sccBus = 0 if 1056 in fingerprint[0] else 1 if 1056 in fingerprint[1] and 1296 not in fingerprint[1] \
                                                                      else 2 if 1056 in fingerprint[2] else -1
     ret.radarOffCan = ret.sccBus == -1
-    ret.openpilotLongitudinalControl = False #bool(ret.sccBus and not ret.radarOffCan)
-    ret.enableCruise = True #not ret.radarOffCan
+    ret.openpilotLongitudinalControl = False #TODO make ui toggle
+    ret.enableCruise = not ret.radarOffCan
     ret.autoLcaEnabled = False
     ret.spasEnabled = False
 
@@ -295,17 +270,18 @@ class CarInterface(CarInterfaceBase):
       self.CP.enableCruise = True
 
     # most HKG cars has no long control, it is safer and easier to engage by main on
-    ret.cruiseState.enabled = ret.cruiseState.available if not self.CC.longcontrol else ret.cruiseState.enabled
+    if not self.CP.openpilotLongitudinalControl:
+      ret.cruiseState.enabled = ret.cruiseState.available
     # some Optima only has blinker flash signal
     if self.CP.carFingerprint == CAR.KIA_OPTIMA:
-      ret.leftBlinker = self.CS.left_blinker_flash or self.CS.prev_left_blinker and self.CC.turning_signal_timer
-      ret.rightBlinker = self.CS.right_blinker_flash or self.CS.prev_right_blinker and self.CC.turning_signal_timer
+      ret.leftBlinker = bool(self.CS.left_blinker_flash or self.CS.prev_left_blinker and self.CC.turning_signal_timer)
+      ret.rightBlinker = bool(self.CS.right_blinker_flash or self.CS.prev_right_blinker and self.CC.turning_signal_timer)
 
     # turning indicator alert logic
-    if (ret.leftBlinker or ret.rightBlinker or self.CC.turning_signal_timer) and ret.vEgo < 16.7:
-      self.turning_indicator_alert = True 
+    if (ret.leftBlinker or ret.rightBlinker or self.CC.turning_signal_timer) and ret.vEgo < LANE_CHANGE_SPEED_MIN - 1.2:
+      self.CC.turning_indicator_alert = True 
     else:
-      self.turning_indicator_alert = False
+      self.CC.turning_indicator_alert = False
 
     # LKAS button alert logic: reverse on/off
     #if not self.CS.lkas_error and self.CS.lkas_button_on != self.CS.prev_lkas_button_on:
@@ -381,6 +357,7 @@ class CarInterface(CarInterfaceBase):
 
   def apply(self, c):
     can_sends = self.CC.update(c.enabled, self.CS, self.frame, c.actuators,
+                               c.cruiseControl.cancel, c.hudControl.visualAlert, c.hudControl.leftLaneVisible,
                                c.hudControl.rightLaneVisible, c.hudControl.leftLaneDepart, c.hudControl.rightLaneDepart,
                                c.hudControl.setSpeed, c.hudControl.leadVisible)
     self.frame += 1

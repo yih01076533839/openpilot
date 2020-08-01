@@ -39,12 +39,10 @@ DESIRES = {
   },
 }
 
-
 def calc_states_after_delay(states, v_ego, steer_angle, curvature_factor, steer_ratio, delay):
   states[0].x = v_ego * delay
   states[0].psi = v_ego * curvature_factor * math.radians(steer_angle) / steer_ratio * delay
   return states
-
 
 class PathPlanner():
   def __init__(self, CP):
@@ -61,7 +59,7 @@ class PathPlanner():
     self.lane_change_timer = 0.0
     self.lane_change_ll_prob = 1.0
     self.prev_one_blinker = False
-    self.pre_auto_LCA_timer = 0.0
+    self.auto_lane_change_timer = 0.0
     self.prev_torque_applied = False
 
   def setup_mpc(self):
@@ -114,13 +112,11 @@ class PathPlanner():
     else:
       torque_applied = sm['carState'].steeringPressed and \
                        ((sm['carState'].steeringTorque > 0 and self.lane_change_direction == LaneChangeDirection.left) or
-                        (sm['carState'].steeringTorque < 0 and self.lane_change_direction == LaneChangeDirection.right))
+                        (sm['carState'].steeringTorque < 0 and self.lane_change_direction == LaneChangeDirection.right)) or \
+                        CP.autoLcaEnabled and 3.25 > self.auto_lane_change_timer > 3.
 
       blindspot_detected = ((sm['carState'].leftBlindspot and self.lane_change_direction == LaneChangeDirection.left) or
                             (sm['carState'].rightBlindspot and self.lane_change_direction == LaneChangeDirection.right))
-
-      if CP.autoLcaEnabled and 2.5 > self.pre_auto_LCA_timer > 2.0 and not left_BlindSpot:
-        torque_applied = True # Enable auto LCA only once after 2 sec 
 
       lane_change_prob = self.LP.l_lane_change_prob + self.LP.r_lane_change_prob
 
@@ -136,10 +132,10 @@ class PathPlanner():
           self.lane_change_state = LaneChangeState.off
         elif torque_applied and (not blindspot_detected or self.prev_torque_applied):
           self.lane_change_state = LaneChangeState.laneChangeStarting
-        else if torque_applied and self.pre_auto_LCA_timer < 10.:
-          self.pre_auto_LCA_timer = 10.
-        else if not torque_applied and self.pre_auto_LCA_timer > 10.3:
-           self.prev_torque_applied = True
+        elif torque_applied and blindspot_detected and self.auto_lane_change_timer != 10.0:
+          self.auto_lane_change_timer = 10.0
+        elif not torque_applied and self.auto_lane_change_timer == 10.0 and not self.prev_torque_applied:
+          self.prev_torque_applied = True       
 
       # starting
       elif self.lane_change_state == LaneChangeState.laneChangeStarting:
@@ -164,10 +160,10 @@ class PathPlanner():
       self.lane_change_timer += DT_MDL
 
     if self.lane_change_state == LaneChangeState.off:
-      self.pre_auto_LCA_timer = 0.0
+      self.auto_lane_change_timer = 0.0
       self.prev_torque_applied = False
-    elif not (3. < self.pre_auto_LCA_timer < 10.): # stop afer 3 sec resume from 10 when torque applied
-      self.pre_auto_LCA_timer += DT_MDL
+    elif self.auto_lane_change_timer < 3.25: # stop afer 3 sec resume from 10 when torque applied
+      self.auto_lane_change_timer += DT_MDL
 
     self.prev_one_blinker = one_blinker
 
@@ -177,6 +173,7 @@ class PathPlanner():
     if desire == log.PathPlan.Desire.laneChangeRight or desire == log.PathPlan.Desire.laneChangeLeft:
       self.LP.l_prob *= self.lane_change_ll_prob
       self.LP.r_prob *= self.lane_change_ll_prob
+
     self.LP.update_d_poly(v_ego)
 
     # account for actuation delay
@@ -234,6 +231,7 @@ class PathPlanner():
     plan_send.pathPlan.desire = desire
     plan_send.pathPlan.laneChangeState = self.lane_change_state
     plan_send.pathPlan.laneChangeDirection = self.lane_change_direction
+    plan_send.pathPlan.autoLaneChangeTimer = 3 - int(self.auto_lane_change_timer)
 
     pm.send('pathPlan', plan_send)
 
@@ -245,3 +243,4 @@ class PathPlanner():
       dat.liveMpc.delta = list(self.mpc_solution[0].delta)
       dat.liveMpc.cost = self.mpc_solution[0].cost
       pm.send('liveMpc', dat)
+

@@ -105,13 +105,14 @@ def create_scc11(packer, frame, enabled, set_speed, lead_visible, scc_live, scc1
 
   return packer.make_can_msg("SCC11", 0, values)
 
-def create_scc12(packer, apply_accel, enabled, cnt, scc12):
+def create_scc12(packer, apply_accel, enabled, cnt, scc_live, scc12):
   values = scc12
-  if enabled and scc12["ACCMode"] == 1:
-    values["aReqMax"] = apply_accel
-    values["aReqMin"] = apply_accel
+  values["aReqRaw"] = apply_accel if enabled else 0 #aReqMax
+  values["aReqValue"] = apply_accel if enabled else 0 #aReqMin
   values["CR_VSM_Alive"] = cnt
   values["CR_VSM_ChkSum"] = 0
+  if not scc_live:
+    values["ACCMode"] = 1  if enabled else 0 # 2 if gas padel pressed
 
   dat = packer.make_can_msg("SCC12", 0, values)[2]
   values["CR_VSM_ChkSum"] = 16 - sum([sum(divmod(i, 16)) for i in dat]) % 16
@@ -152,9 +153,8 @@ def create_spas11(packer, car_fingerprint, frame, en_spas, apply_steer, bus):
     values["CF_Spas_Chksum"] = sum(dat[:6]) % 256
   return packer.make_can_msg("SPAS11", bus, values)
 
-def create_spas12(packer, bus):
-  values = {}
-  return packer.make_can_msg("SPAS12", bus, values)
+def create_spas12(bus):
+  return [1268, 0, "\x00\x00\x00\x00\x00\x00\x00\x00", bus]
 
 def create_ems11(packer, ems11, enabled):
   values = ems11

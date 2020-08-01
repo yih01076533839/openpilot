@@ -82,7 +82,7 @@ bool pigeon_needs_init;
 
 void pigeon_init();
 void *pigeon_thread(void *crap);
-
+void handle_usb_issue(int err, const char func[]);
 void *safety_setter_thread(void *s) {
   // diagnostic only is the default, needed for VIN query
   pthread_mutex_lock(&usb_lock);
@@ -161,13 +161,18 @@ bool usb_connect() {
 
   dev_handle = libusb_open_device_with_vid_pid(ctx, 0xbbaa, 0xddcc);
   if (dev_handle == NULL) { goto fail; }
-
+  printf ("panda found, detaching\n");
+  if (libusb_kernel_driver_active(dev_handle, 0) == 1) {
+    err = libusb_detach_kernel_driver(dev_handle, 0);
+    if (err != 0) { handle_usb_issue(err, __func__); goto fail; }
+  }
+  printf ("panda found, configuraing\n");
   err = libusb_set_configuration(dev_handle, 1);
-  if (err != 0) { goto fail; }
-
+  if (err != 0) { handle_usb_issue(err, __func__); goto fail; }
+  printf ("device configured successfully, claiming\n");
   err = libusb_claim_interface(dev_handle, 0);
   if (err != 0) { goto fail; }
-
+  printf ("device claimed successfully, connected\n");
   if (loopback_can) {
     libusb_control_transfer(dev_handle, 0xc0, 0xe5, 1, 0, NULL, 0, TIMEOUT);
   }

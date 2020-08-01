@@ -35,23 +35,7 @@ LongitudinalPlanSource = log.Plan.LongitudinalPlanSource
 Desire = log.PathPlan.Desire
 LaneChangeState = log.PathPlan.LaneChangeState
 LaneChangeDirection = log.PathPlan.LaneChangeDirection
-<<<<<<< HEAD
-LaneChangeBSM = log.PathPlan.LaneChangeBSM
-
-
-def events_to_bytes(events):
-  # optimization when comparing capnp structs: str() or tree traverse are much slower
-  ret = []
-  for e in events:
-    if isinstance(e, capnp.lib.capnp._DynamicStructReader):
-      e = e.as_builder()
-    if not e.is_root:
-      e = e.copy()
-    ret.append(e.to_bytes())
-  return ret
-=======
 EventName = car.CarEvent.EventName
->>>>>>> upstream/master
 
 
 class Controls:
@@ -151,14 +135,14 @@ class Controls:
 
     if not sounds_available:
       self.events.add(EventName.soundsUnavailable, static=True)
-    if internet_needed:
-      self.events.add(EventName.internetConnectivityNeeded, static=True)
+#    if internet_needed:
+#      self.events.add(EventName.internetConnectivityNeeded, static=True)
     if community_feature_disallowed:
       self.events.add(EventName.communityFeatureDisallowed, static=True)
     if self.read_only and not passive:
       self.events.add(EventName.carUnrecognized, static=True)
-    if hw_type == HwType.whitePanda:
-      self.events.add(EventName.whitePandaUnsupported, static=True)
+    # if hw_type == HwType.whitePanda:
+      # self.events.add(EventName.whitePandaUnsupported, static=True)
 
     # controlsd is driven by can recv, expected at 100Hz
     self.rk = Ratekeeper(100, print_delay_threshold=None)
@@ -202,6 +186,8 @@ class Controls:
       if (CS.leftBlindspot and direction == LaneChangeDirection.left) or \
          (CS.rightBlindspot and direction == LaneChangeDirection.right):
         self.events.add(EventName.laneChangeBlocked)
+      elif self.CP.autoLcaEnabled and self.sm['pathPlan'].autoLaneChangeTimer > 0:
+        self.events.add(EventName.autoLaneChange)
       else:
         if direction == LaneChangeDirection.left:
           self.events.add(EventName.preLaneChangeLeft)
@@ -225,9 +211,9 @@ class Controls:
     if not self.sm['liveLocationKalman'].sensorsOK and os.getenv("NOSENSOR") is None:
       if self.sm.frame > 5 / DT_CTRL:  # Give locationd some time to receive all the inputs
         self.events.add(EventName.sensorDataInvalid)
-    if not self.sm['liveLocationKalman'].gpsOK and (self.distance_traveled > 1000) and os.getenv("NOSENSOR") is None:
+#    if not self.sm['liveLocationKalman'].gpsOK and (self.distance_traveled > 1000) and os.getenv("NOSENSOR") is None:
       # Not show in first 1 km to allow for driving out of garage. This event shows after 5 minutes
-      self.events.add(EventName.noGps)
+#      self.events.add(EventName.noGps)
     if not self.sm['pathPlan'].paramsValid:
       self.events.add(EventName.vehicleModelInvalid)
     if not self.sm['liveLocationKalman'].posenetOK:
@@ -243,7 +229,7 @@ class Controls:
       self.events.add(EventName.relayMalfunction)
     if self.sm['plan'].fcw:
       self.events.add(EventName.fcw)
-    if self.sm['model'].frameAge > 1:
+    if self.sm['model'].frameDropPerc > 1:
       self.events.add(EventName.modeldLagging)
 
     # Only allow engagement with brake pressed when stopped behind another stopped car
@@ -287,8 +273,9 @@ class Controls:
     self.v_cruise_kph_last = self.v_cruise_kph
 
     # if stock cruise is completely disabled, then we can use our own set speed logic
+    self.CP.enableCruise = self.CI.CP.enableCruise
     if not self.CP.enableCruise:
-      self.v_cruise_kph = update_v_cruise(self.v_cruise_kph, CS.buttonEvents, self.enabled)
+      self.v_cruise_kph = update_v_cruise(self.v_cruise_kph, CS.buttonEvents, self.enabled, self.is_metric)
     elif self.CP.enableCruise and CS.cruiseState.enabled:
       self.v_cruise_kph = CS.cruiseState.speed * CV.MS_TO_KPH
 
@@ -416,7 +403,7 @@ class Controls:
     CC.actuators = actuators
 
     CC.cruiseControl.override = True
-    CC.cruiseControl.cancel = not self.CP.enableCruise or (not self.enabled and CS.cruiseState.enabled)
+    CC.cruiseControl.cancel = self.CP.enableCruise and not self.enabled and CS.cruiseState.enabled
 
     # Some override values for Honda
     # brake discount removes a sharp nonlinearity
