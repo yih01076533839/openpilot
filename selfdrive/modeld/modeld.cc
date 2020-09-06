@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
   VisionStream stream;
   while (!do_exit) {
     VisionStreamBufs buf_info;
-    err = visionstream_init(&stream, VISION_STREAM_YUV, false, &buf_info);
+    err = visionstream_init(&stream, VISION_STREAM_YUV, true, &buf_info);
     if (err) {
       LOGW("visionstream connect failed");
       usleep(100000);
@@ -171,10 +171,17 @@ int main(int argc, char **argv) {
     }
     LOGW("connected with buffer size: %d", buf_info.buf_len);
 
+    // setup filter to track dropped frames
+    const float dt = 1. / MODEL_FREQ;
+    const float ts = 5.0;  // 5 s filter time constant
+    const float frame_filter_k = (dt / ts) / (1. + dt / ts);
+    float frames_dropped = 0;
+
     // one frame in memory
     cl_mem yuv_cl;
     VisionBuf yuv_ion = visionbuf_allocate_cl(buf_info.buf_len, device_id, context, &yuv_cl);
 
+    uint32_t frame_id = 0, last_vipc_frame_id = 0;
     double last = 0;
     int desire = -1;
     while (!do_exit) {
@@ -183,7 +190,6 @@ int main(int argc, char **argv) {
       buf = visionstream_get(&stream, &extra);
       if (buf == NULL) {
         LOGW("visionstream get failed");
-        visionstream_destroy(&stream);
         break;
       }
 
@@ -195,6 +201,7 @@ int main(int argc, char **argv) {
       if (sm.update(0) > 0){
         // TODO: path planner timeout?
         desire = ((int)sm["pathPlan"].getPathPlan().getDesire()) - 1;
+        frame_id = sm["frame"].getFrame().getFrameId();
       }
 
       double mt1 = 0, mt2 = 0;
@@ -205,8 +212,7 @@ int main(int argc, char **argv) {
         }
 
         mat3 model_transform = matmul3(yuv_transform, transform);
-        uint32_t frame_id = sm["frame"].getFrame().getFrameId();
-
+        
         mt1 = millis_since_boot();
 
         // TODO: don't make copies!
@@ -217,18 +223,23 @@ int main(int argc, char **argv) {
                              model_transform, NULL, vec_desire);
         mt2 = millis_since_boot();
 
-        model_publish(pm, extra.frame_id, frame_id,  model_buf, extra.timestamp_eof);
-        posenet_publish(pm, extra.frame_id, frame_id, model_buf, extra.timestamp_eof);
+        // tracked dropped frames
+        uint32_t vipc_dropped_frames = extra.frame_id - last_vipc_frame_id - 1;
+        frames_dropped = (1. - frame_filter_k) * frames_dropped + frame_filter_k * (float)std::min(vipc_dropped_frames, 10U);
+        float frame_drop_perc = frames_dropped / MODEL_FREQ;
 
-        LOGD("model process: %.2fms, from last %.2fms, vipc_frame_id %zu, frame_id, %zu", mt2-mt1, mt1-last, extra.frame_id, frame_id);
+        model_publish(pm, extra.frame_id, frame_id,  vipc_dropped_frames, frame_drop_perc, model_buf, extra.timestamp_eof);
+        posenet_publish(pm, extra.frame_id, frame_id, vipc_dropped_frames, frame_drop_perc, model_buf, extra.timestamp_eof);
+
+        LOGD("model process: %.2fms, from last %.2fms, vipc_frame_id %zu, frame_id, %zu, frame_drop %.3f", mt2-mt1, mt1-last, extra.frame_id, frame_id, frame_drop_perc);
         last = mt1;
+        last_vipc_frame_id = extra.frame_id;
       }
 
     }
     visionbuf_free(&yuv_ion);
+    visionstream_destroy(&stream);
   }
-
-  visionstream_destroy(&stream);
 
   model_free(&model);
 
