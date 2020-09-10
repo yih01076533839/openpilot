@@ -316,3 +316,7 @@ int Panda::can_receive(cereal::Event::Builder &event){
 
   return recv;
 }
+
+void Panda::set_unsafe_model(int unsafe_mode){
+  usb_write(0xdf, unsafe_mode, 0);
+}
