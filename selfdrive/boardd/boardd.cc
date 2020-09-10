@@ -106,6 +106,15 @@ void safety_setter_thread() {
   }
   LOGW("got %d bytes CarParams", params.size());
 
+  // set unsafe mode
+  char unsafe_mode[1];
+  size_t unsafe_len = 1;
+  int unsafe_rt = read_db_value("MadModeEnabled", unsafe_mode, &unsafe_len, true);
+  if (unsafe_rt == 0){
+    LOGW("setting unsafe mode: %d ", (int)unsafe_mode);
+    panda->set_unsafe_model((int)unsafe_mode);
+  }
+
   // format for board, make copy due to alignment issues, will be freed on out of scope
   auto amsg = kj::heapArray<capnp::word>((params.size() / sizeof(capnp::word)) + 1);
   memcpy(amsg.begin(), params.data(), params.size());
