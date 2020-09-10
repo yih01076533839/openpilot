@@ -34,6 +34,11 @@ struct __attribute__((packed)) health_t {
   uint8_t power_save_enabled;
 };
 
+// unsafe mo
+#define UNSAFE_DISABLE_DISENGAGE_ON_GAS 1
+#define UNSAFE_DISABLE_STOCK_AEB 2
+#define UNSAFE_RAISE_LONGITUDINAL_LIMITS_TO_ISO_MAX 8
+
 class Panda {
  private:
   libusb_context *ctx = NULL;
@@ -74,5 +79,6 @@ class Panda {
   void send_heartbeat();
   void can_send(capnp::List<cereal::CanData>::Reader can_data_list);
   int can_receive(cereal::Event::Builder &event);
+  void set_unsafe_model(int unsafe_mode);
 
 };
