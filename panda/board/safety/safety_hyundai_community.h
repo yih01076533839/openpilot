@@ -1,4 +1,5 @@
 bool hyundai_has_scc = false;
+bool hyundai_stock_aeb = false;
 int OP_LKAS_live = 0;
 int OP_MDPS_live = 0;
 int OP_CLU_live = 0;
@@ -6,8 +7,13 @@ int OP_SCC_live = 0;
 int car_SCC_live = 0;
 int OP_EMS_live = 0;
 int hyundai_mdps_bus = -1;
+int hyundai_scc_bus = -1;
 bool hyundai_LCAN_on_bus1 = false;
 bool hyundai_forward_bus1 = false;
+const int HYUNDAI_MAX_ACCEL = 150;        // 1.5 m/s2
+const int HYUNDAI_MIN_ACCEL = -300;       // -3.0 m/s2
+const int HYUNDAI_ISO_MAX_ACCEL = 200;        // 2.0 m/s2
+const int HYUNDAI_ISO_MIN_ACCEL = -350;       // -3.5 m/s2
 const CanMsg HYUNDAI_COMMUNITY_TX_MSGS[] = {
   {832, 0, 8}, {832, 1, 8}, // LKAS11 Bus 0, 1
   {1265, 0, 4}, {1265, 1, 4}, {1265, 2, 4}, // CLU11 Bus 0, 1, 2
@@ -51,7 +57,7 @@ static int hyundai_community_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   }
   if (bus == 1 && hyundai_LCAN_on_bus1) {valid = false;}
 
-  // check MDPS on Bus
+  // check MDPS Bus
   if ((addr == 593 || addr == 897) && hyundai_mdps_bus != bus) {
     if (bus == 0){
       hyundai_mdps_bus = bus;
@@ -60,13 +66,16 @@ static int hyundai_community_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
       }
     } else if (bus == 1 && !hyundai_LCAN_on_bus1) {
       hyundai_mdps_bus = bus;
-      hyundai_forward_bus1 = true;
+    if (!hyundai_forward_bus1) {hyundai_forward_bus1 = true;}
     } 
   }
-  // check if we have a SCC on Bus1 and LCAN not on the bus
-  if (bus == 1 && addr == 1057 && !hyundai_LCAN_on_bus1) {
-    if (!hyundai_forward_bus1) {
-      hyundai_forward_bus1 = true;
+  // check SCC bus
+  if (addr == 1057 && hyundai_scc_bus != bus) {
+    if (bus == 1 && !hyundai_LCAN_on_bus1) {
+      hyundai_scc_bus = bus;
+    if (!hyundai_forward_bus1) {hyundai_forward_bus1 = true;}
+    } else {
+      hyundai_scc_bus = bus;
     }
   }
 
@@ -90,6 +99,7 @@ static int hyundai_community_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
         controls_allowed = 0;
       }
       cruise_engaged_prev = cruise_engaged;
+      hyundai_stock_aeb = (GET_BYTE(to_push, 6) & 0x40) != 0;
     }
     if (addr == 1056 && !OP_SCC_live) { // for cars without long control
       hyundai_has_scc = true;
@@ -165,6 +175,28 @@ static int hyundai_community_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 
   if (relay_malfunction) {
     tx = 0;
+  }
+
+  // ACCEL: safety check
+  if (addr == 1057 && bus == 0) {
+    bool violation = false;
+    if (!hyundai_stock_aeb && (GET_BYTE(to_send, 6) & 0x40) == 0) {
+      int desired_accel = (GET_BYTE(to_send, 3) | ((GET_BYTE(to_send, 4) & 0x7) << 8)) - 1024;
+      if (controls_allowed) {
+      violation = (unsafe_mode & UNSAFE_RAISE_LONGITUDINAL_LIMITS_TO_ISO_MAX)?
+        max_limit_check(desired_accel, HYUNDAI_ISO_MAX_ACCEL, HYUNDAI_ISO_MIN_ACCEL) :
+        max_limit_check(desired_accel, HYUNDAI_MAX_ACCEL, HYUNDAI_MIN_ACCEL);
+      }
+      if (!controls_allowed && desired_accel != 0) {
+        violation = true;
+      }
+      if (bus == hyundai_scc_bus && car_SCC_live > 40) {
+        violation = true;
+      }
+    }
+    if (violation) {
+      tx = 0;
+    }
   }
 
   // LKA STEER: safety check
