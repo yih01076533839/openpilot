@@ -4,7 +4,8 @@ from common.numpy_fast import clip
 from selfdrive.car import apply_std_steer_torque_limits
 from selfdrive.car.hyundai.hyundaican import create_lkas11, create_clu11, create_lfa_mfa, \
                                              create_scc11, create_scc12,  create_scc13, create_scc14, \
-                                             create_mdps12, create_spas11, create_spas12, create_ems11
+                                             create_mdps12, create_spas11, create_spas12, create_ems11, \
+                                             create_scc_cmd
 from selfdrive.car.hyundai.values import Buttons, SteerLimitParams, CAR, FEATURES
 from opendbc.can.packer import CANPacker
 from selfdrive.config import Conversions as CV
@@ -155,21 +156,13 @@ class CarController():
       self.lkas11_cnt = CS.lkas11["CF_Lkas_MsgCount"]
       self.scc12_cnt = CS.scc12["CR_VSM_Alive"] + 1 if not CS.no_radar else 0
 
-      #TODO: fix this
-      # self.prev_scc_cnt = CS.scc11["AliveCounterACC"]
-      # self.scc_update_frame = frame
-
-    # check if SCC is alive
-    # if frame % 7 == 0:
-      # if CS.scc11["AliveCounterACC"] == self.prev_scc_cnt:
-        # if frame - self.scc_update_frame > 20 and self.scc_live:
-          # self.scc_live = False
-      # else:
-        # self.scc_live = True
-        # self.prev_scc_cnt = CS.scc11["AliveCounterACC"]
-        # self.scc_update_frame = frame
-
-    self.prev_scc_cnt = CS.scc11["AliveCounterACC"]
+    #check if SCC is alive
+    if self.longcontrol and CS.scc_bus == 0:
+      if frame % 2 and self.scc_live and CS.scc11["AliveCounterACC"] == self.prev_scc_cnt:
+        self.scc_live = False
+      elif frame % 2 and not self.scc_live and CS.scc11["AliveCounterACC"] != self.prev_scc_cnt:
+        self.scc_live = True
+      self.prev_scc_cnt = CS.scc11["AliveCounterACC"]
 
     self.lkas11_cnt = (self.lkas11_cnt + 1) % 0x10
     self.scc12_cnt %= 0xF
@@ -198,6 +191,14 @@ class CarController():
     if CS.mdps_bus: # send mdps12 to LKAS to prevent LKAS error
       can_sends.append(create_mdps12(self.packer, frame, CS.mdps12))
 
+    if self.longcontrol and CS.scc_bus == 0:
+      if frame == 100 and self.scc_live:
+        # send disable SCC, 4 bytes to keep panda happy
+        can_sends.append(create_scc_cmd("02108500"))
+      if frame % 6000 == 0 and not self.scc_live:
+        # send keep disable SCC every 1 min
+        can_sends.append(create_scc_cmd("023E0000"))
+    
     # send scc to car if longcontrol enabled and SCC not on bus 0 or ont live
     if self.longcontrol and (CS.scc_bus or not self.scc_live) and frame % 2 == 0: 
       can_sends.append(create_scc12(self.packer, apply_accel, enabled, self.scc12_cnt, self.scc_live, CS.scc12))

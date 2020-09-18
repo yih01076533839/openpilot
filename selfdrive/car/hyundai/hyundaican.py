@@ -168,3 +168,8 @@ def create_ems11(packer, ems11, enabled):
   if enabled:
     values["VS"] = 0
   return packer.make_can_msg("values", 1, ems11)
+
+def create_scc_cmd(cmd):
+  dat = bytes.fromhex(cmd)
+  return[2000, 0, dat, 0]
+
