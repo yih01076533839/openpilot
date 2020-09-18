@@ -190,7 +190,7 @@ static int hyundai_community_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
       if (!controls_allowed && desired_accel != 0) {
         violation = true;
       }
-      if (bus == hyundai_scc_bus && car_SCC_live > 40) {
+      if (bus == hyundai_scc_bus && car_SCC_live > 48) {
         violation = true;
       }
     }
