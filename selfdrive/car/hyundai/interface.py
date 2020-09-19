@@ -265,7 +265,7 @@ class CarInterface(CarInterfaceBase):
                                                                      else 2 if 1056 in fingerprint[2] else -1
     ret.radarOffCan = ret.sccBus == -1
     ret.openpilotLongitudinalControl = Params().get('LongControlEnabled') == b'1'
-    ret.enableCruise = not ret.radarOffCan
+    ret.enableCruise = not ret.openpilotLongitudinalControl or ret.sccBus != 0
     ret.spasEnabled = False
     
     # set safety_hyundai_community only for non-SCC, MDPS harrness or SCC harrness cars or cars that have unknown issue
