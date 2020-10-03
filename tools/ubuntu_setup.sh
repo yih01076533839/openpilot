@@ -89,5 +89,5 @@ pipenv install --dev --system --deploy
 
 # for loggerd to work on ubuntu
 # TODO: PC should log somewhere else
-#sudo mkdir -p /data/media/0/realdata
-#sudo chown $USER /data/media/0/realdata
+sudo mkdir -p /data/media/0/realdata
+sudo chown $USER /data/media/0/realdata
