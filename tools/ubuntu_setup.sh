@@ -87,6 +87,13 @@ pip install pipenv==2018.11.26
 # pipenv setup (in openpilot dir)
 pipenv install --dev --system --deploy
 
+# setup Panda udev rules
+sudo tee /etc/udev/rules.d/11-panda.rules <<EOF
+SUBSYSTEM=="usb", ATTRS{idVendor}=="bbaa", ATTRS{idProduct}=="ddcc", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="bbaa", ATTRS{idProduct}=="ddee", MODE="0666"
+EOF
+sudo udevadm control --reload-rules && sudo udevadm trigger
+
 # for loggerd to work on ubuntu
 # TODO: PC should log somewhere else
 sudo mkdir -p /data/media/0/realdata
