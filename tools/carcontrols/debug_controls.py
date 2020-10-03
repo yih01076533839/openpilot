@@ -75,6 +75,8 @@ def steer_thread():
     CC.hudControl.setSpeed = 20
     CC.cruiseControl.cancel = pcm_cancel_cmd
     CC.enabled = enabled
+    CC.hudControl.leftLaneVisible = True
+    CC.hudControl.rightLaneVisible = True
     can_sends = CI.apply(CC)
     sendcan.send(can_list_to_can_capnp(can_sends, msgtype='sendcan'))
 
