@@ -30,7 +30,7 @@ Setup
 ============
 1. Run `ubuntu_setup.sh` or `mac_setup.sh`, make sure everything completed correctly
 
-2. Compile openpilot by running ```scons``` in the openpilot directory
+2. Compile openpilot by running ```PARAMS_PATH=persist/params PASSIVE=1 NOSENSOR=1 python selfdrive/manager.py``` in the openpilot directory
 
 3. Try out some tools!
 
