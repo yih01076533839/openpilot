@@ -192,11 +192,14 @@ class CarController():
       can_sends.append(create_mdps12(self.packer, frame, CS.mdps12))
 
     if self.longcontrol and CS.scc_bus == 0:
-      if frame == 100 and self.scc_live:
+      if frame == 101 and self.scc_live:
+        # send disable SCC, 4 bytes to keep panda happy
+        can_sends.append(create_scc_cmd("02103000"))
+      if frame == 102 and self.scc_live:
         # send disable SCC, 4 bytes to keep panda happy
         can_sends.append(create_scc_cmd("02108500"))
-      if frame % 6000 == 0 and not self.scc_live:
-        # send keep disable SCC every 1 min
+      if frame % 100 == 0 and not self.scc_live:
+        # send keep disable SCC every 1 sec
         can_sends.append(create_scc_cmd("023E0000"))
     
     # send scc to car if longcontrol enabled and SCC not on bus 0 or ont live
