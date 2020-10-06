@@ -88,7 +88,7 @@ pip install pipenv==2018.11.26
 pipenv install --dev --system --deploy
 
 # setup udev Panda-rule
-if [ -e /etc/udev/rules.d/85-panda.rules ]; then
+if ! [ -e /etc/udev/rules.d/85-panda.rules ]; then
   sudo tee /etc/udev/rules.d/85-panda.rules <<EOF
   SUBSYSTEM=="usb", ATTRS{idVendor}=="bbaa", ATTRS{idProduct}=="ddcc", MODE="0666"
   SUBSYSTEM=="usb", ATTRS{idVendor}=="bbaa", ATTRS{idProduct}=="ddee", MODE="0666"
