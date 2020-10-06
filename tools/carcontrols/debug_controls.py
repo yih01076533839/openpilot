@@ -23,6 +23,7 @@ def steer_thread():
 
   button_1_last = 0
   enabled = False
+  Params().put("LongControlEnabled", str(0))
 
   # wait for health and CAN packets
   hw_type = messaging.recv_one(health).health.hwType
@@ -61,8 +62,8 @@ def steer_thread():
 
       button_1_last = button_1
 
-      print(" Enable:{}, Steer Cmd:{:.4f}, steering Angle:{:.0f}°    ".format(enabled, actuators.steer, CS.steeringAngle), end='\r')
-
+      print(" Enable:{}, Accel:{:.4f} , Steer:{:.4f}, steering Angle:{:.0f}°    ".format(enabled, \
+           (actuators.gas - actuators.brake), actuators.steer, CS.steeringAngle), end='\r')
       hud_alert = 0
       if joystick.testJoystick.buttons[3]:
         hud_alert = "steerRequired"
@@ -72,7 +73,7 @@ def steer_thread():
     CC.actuators.steer = actuators.steer
     CC.actuators.steerAngle = actuators.steerAngle
     CC.hudControl.visualAlert = hud_alert
-    CC.hudControl.setSpeed = 20
+    CC.hudControl.setSpeed = 6.
     CC.cruiseControl.cancel = pcm_cancel_cmd
     CC.enabled = enabled
     CC.hudControl.leftLaneVisible = True
