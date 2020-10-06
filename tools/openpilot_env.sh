@@ -13,5 +13,6 @@ if [ -z "$OPENPILOT_ENV" ]; then
   eval "$(pyenv init -)"
 
   export OPENPILOT_ENV=1
+  export PARAMS_PATH=persist/params
 fi
 
