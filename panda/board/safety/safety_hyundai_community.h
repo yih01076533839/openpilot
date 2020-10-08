@@ -1,11 +1,13 @@
 bool hyundai_has_scc = false;
 int OP_LKAS_live = 0;
 int OP_MDPS_live = 0;
-int OP_CLU_live = 0;
+int OP_CLU_live_bus1 = 0;
+int OP_CLU_live_bus2 = 0;
 int OP_SCC_live = 0;
 int car_SCC_live = 0;
 int OP_EMS_live = 0;
 int HKG_mdps_bus = -1;
+int HKG_scc_bus = -1;
 const CanMsg HYUNDAI_COMMUNITY_TX_MSGS[] = {
   {832, 0, 8}, {832, 1, 8}, // LKAS11 Bus 0, 1
   {1265, 0, 4}, {1265, 1, 4}, {1265, 2, 4}, // CLU11 Bus 0, 1, 2
@@ -51,9 +53,12 @@ static int hyundai_community_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
       HKG_forward_bus1 = true;
     } 
   }
-  // check if we have a SCC on Bus1 and LCAN not on the bus
-  if (bus == 1 && addr == 1057 && !HKG_LCAN_on_bus1) {
-    if (!HKG_forward_bus1) {
+  // check MDPS on Bus
+  if (addr == 1057 && HKG_scc_bus != bus) {
+    if (bus != 1){
+      HKG_scc_bus = bus;
+    } else if (!HKG_LCAN_on_bus1) {
+      HKG_scc_bus = bus;
       HKG_forward_bus1 = true;
     }
   }
@@ -214,9 +219,9 @@ static int hyundai_community_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   }
 
   if (addr == 593) {OP_MDPS_live = 20;}
-  if (addr == 1265 && bus == 1) {OP_CLU_live = 20;} // only count mesage created for MDPS
   if (addr == 1057) {OP_SCC_live = 20; if (car_SCC_live > 0) {car_SCC_live -= 1;}}
   if (addr == 790) {OP_EMS_live = 20;}
+  if (addr == 1265) {if (bus == 1) {OP_CLU_live_bus1 = 20;} else if (bus = 2) {OP_CLU_live_bus2 = 2;} } // only count mesage created for MDPS
 
   // 1 allows the message through
   return tx;
@@ -232,10 +237,15 @@ static int hyundai_community_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_f
   // forward cam to ccan and viceversa, except lkas cmd
   if (!relay_malfunction) {
     if (bus_num == 0) {
-      if (!OP_CLU_live || addr != 1265 || HKG_mdps_bus == 0) {
+      if (!OP_CLU_live_bus1 || addr != 1265 || !(HKG_mdps_bus == 1 || HKG_scc_bus == 1)) {
         if (!OP_MDPS_live || addr != 593) {
           if (!OP_EMS_live || addr != 790) {
-            bus_fwd = HKG_forward_bus1 ? 12 : 2;
+            if (!OP_CLU_live_bus2 || addr != 1265 || HKG_scc_bus != 2) {
+              bus_fwd = HKG_forward_bus1 ? 12 : 2;
+            } else if (HKG_forward_bus1) {
+              bus_fwd = 1; // EON create CLU12 for SCC bus2
+              OP_CLU_live_bus2 -= 1;
+            }
           } else {
             bus_fwd = 2;  // EON create EMS11 for MDPS
             OP_EMS_live -= 1;
@@ -246,7 +256,7 @@ static int hyundai_community_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_f
         }
       } else {
         bus_fwd = 2; // EON create CLU12 for MDPS
-        OP_CLU_live -= 1;
+        OP_CLU_live_bus2 -= 1;
       }
     }
     if (bus_num == 1 && HKG_forward_bus1) {
