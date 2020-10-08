@@ -212,9 +212,8 @@ class CarController():
     if frame % 5 == 0 and self.car_fingerprint in FEATURES["send_lfa_mfa"]:
       can_sends.append(create_lfa_mfa(self.packer, frame, lkas_active))
 
-    if CS.spas_enabled:
-      if CS.mdps_bus:
-        can_sends.append(create_ems11(self.packer, CS.ems11, spas_active))
+    if CS.spas_enabled and CS.mdps_bus == 1 and spas_active:
+      can_sends.append(create_ems11(self.packer, CS.ems11, 0, 1))
 
       # SPAS11 50hz
       if (frame % 2) == 0:
