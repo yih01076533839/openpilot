@@ -10,8 +10,7 @@ from opendbc.can.packer import CANPacker
 from selfdrive.config import Conversions as CV
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
-min_set_speed = 30 * CV.KPH_TO_MS
-
+min_set_speed = 30 if not CS.is_set_speed_in_mph else 30 * KPH_TO_MPH
 # Accel limits
 ACCEL_HYST_GAP = 0.02  # don't change accel command for small oscilalitons within this value
 ACCEL_MAX = 1.5  # 1.5 m/s2
@@ -184,15 +183,15 @@ class CarController():
                                    CS.lkas11, sys_warning, sys_state, enabled, left_lane, right_lane,
                                    left_lane_warning, right_lane_warning, 1))
     if frame % 2 and CS.mdps_bus: # send clu11 to mdps if it is not on bus 0
-      can_sends.append(create_clu11(self.packer, frame, CS.mdps_bus, CS.clu11, Buttons.NONE, enabled_speed))
+      can_sends.append(create_clu11(self.packer, frame, CS.mdps_bus, CS.clu11, None, enabled_speed))
 
     if pcm_cancel_cmd and self.longcontrol:
-      can_sends.append(create_clu11(self.packer, frame, CS.scc_bus, CS.clu11, Buttons.CANCEL, clu11_speed))
+      can_sends.append(create_clu11(self.packer, frame, CS.scc_bus, CS.clu11, Buttons.CANCEL, None))
     elif CS.out.cruiseState.standstill:
       # SCC won't resume anyway when the lead distace is less than 3.7m
       # send resume at a max freq of 5Hz
       if CS.lead_distance > 3.7 and (frame - self.last_resume_frame)*DT_CTRL > 0.2:
-        can_sends.append(create_clu11(self.packer, frame, CS.scc_bus, CS.clu11, Buttons.RES_ACCEL, clu11_speed))
+        can_sends.append(create_clu11(self.packer, frame, CS.scc_bus, CS.clu11, Buttons.RES_ACCEL, None))
         self.last_resume_frame = frame
 
     if CS.mdps_bus: # send mdps12 to LKAS to prevent LKAS error
@@ -207,6 +206,11 @@ class CarController():
       if CS.has_scc14:
         can_sends.append(create_scc14(self.packer, enabled, CS.scc14))
       self.scc12_cnt += 1
+
+    # send clu11 to SCC if it is not on bus 0 when set button pressed
+    if frame % 2 and CS.scc_bus and CS.scc_bus != CS.mdps_bus and CS.cruise_buttons == Buttons.SET_DECEL and \
+    not CS.out.cruiseState.enabled and CS.out.cruiseState.available and clu11_speed < min_set_speed:
+      can_sends.append(create_clu11(self.packer, frame, CS.scc_bus, CS.clu11, None, min_set_speed))
 
     # 20 Hz LFA MFA message
     if frame % 5 == 0 and self.car_fingerprint in FEATURES["send_lfa_mfa"]:
