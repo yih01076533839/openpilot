@@ -210,6 +210,8 @@ class CarController():
     if frame % 2 and CS.scc_bus > 0 and CS.scc_bus != CS.mdps_bus and CS.cruise_buttons == Buttons.SET_DECEL and \
     CS.scc12["ACCMode"] == 0 and CS.out.cruiseState.available and clu11_speed < min_set_speed:
       can_sends.append(create_clu11(self.packer, frame, CS.scc_bus, CS.clu11, None, min_set_speed))
+      min_set_speed_kmh = min_set_speed * CV.MPH_TO_KPH if CS.is_set_speed_in_mph else min_set_speed
+      # can_sends.append(create_ems11(self.packer, CS.ems11, min_set_speed_kmh, CS.scc_bus))
 
     # 20 Hz LFA MFA message
     if frame % 5 == 0 and self.car_fingerprint in FEATURES["send_lfa_mfa"]:
