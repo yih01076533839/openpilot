@@ -145,10 +145,9 @@ class CarController():
     enabled_speed = 38 if CS.is_set_speed_in_mph  else 60
     if clu11_speed > enabled_speed or not lkas_active:
       enabled_speed = clu11_speed
-
-    if not(min_set_speed < set_speed < 255 * CV.KPH_TO_MS):
-      set_speed = min_set_speed 
     set_speed *= CV.MS_TO_MPH if CS.is_set_speed_in_mph else CV.MS_TO_KPH
+    if not(min_set_speed < set_speed < 255):
+      set_speed = min_set_speed 
 
     if frame == 0: # initialize counts from last received count signals
       self.lkas11_cnt = CS.lkas11["CF_Lkas_MsgCount"]
@@ -208,8 +207,8 @@ class CarController():
       self.scc12_cnt += 1
 
     # send clu11 to SCC if it is not on bus 0 when set button pressed
-    if frame % 2 and CS.scc_bus and CS.scc_bus != CS.mdps_bus and CS.cruise_buttons == Buttons.SET_DECEL and \
-    not CS.out.cruiseState.enabled and CS.out.cruiseState.available and clu11_speed < min_set_speed:
+    if frame % 2 and CS.scc_bus > 0 and CS.scc_bus != CS.mdps_bus and CS.cruise_buttons == Buttons.SET_DECEL and \
+    CS.scc12["ACCMode"] == 0 and CS.out.cruiseState.available and clu11_speed < min_set_speed:
       can_sends.append(create_clu11(self.packer, frame, CS.scc_bus, CS.clu11, None, min_set_speed))
 
     # 20 Hz LFA MFA message
