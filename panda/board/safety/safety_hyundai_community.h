@@ -5,7 +5,8 @@ int OP_CLU_live_bus1 = 0;
 int OP_CLU_live_bus2 = 0;
 int OP_SCC_live = 0;
 int car_SCC_live = 0;
-int OP_EMS_live = 0;
+int OP_EMS_live_bus1 = 0;
+int OP_EMS_live_bus2 = 0;
 int HKG_mdps_bus = -1;
 int HKG_scc_bus = -1;
 const CanMsg HYUNDAI_COMMUNITY_TX_MSGS[] = {
@@ -18,7 +19,7 @@ const CanMsg HYUNDAI_COMMUNITY_TX_MSGS[] = {
   {1290, 0, 8}, //   SCC13,  Bus 0
   {905, 0, 8},  //   SCC14,  Bus 0
   {1186, 0, 8},  //   4a2SCC, Bus 0
-  {790, 1, 8}, // EMS11, Bus 1
+  {790, 1, 8}, {790, 2, 8}, // EMS11, Bus 1
   {912, 0, 7}, {912,1, 7}, // SPAS11, Bus 0, 1
   {1268, 0, 8}, {1268,1, 8}, // SPAS12, Bus 0, 1
  };
@@ -220,7 +221,7 @@ static int hyundai_community_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 
   if (addr == 593) {OP_MDPS_live = 20;}
   if (addr == 1057) {OP_SCC_live = 20; if (car_SCC_live > 0) {car_SCC_live -= 1;}}
-  if (addr == 790) {OP_EMS_live = 20;}
+  if (addr == 790) {if (bus == 1) {OP_EMS_live_bus1 = 20;} else if (bus = 2) OP_EMS_live_bus2 = 2;} }
   if (addr == 1265) {if (bus == 1) {OP_CLU_live_bus1 = 20;} else if (bus = 2) {OP_CLU_live_bus2 = 2;} } // only count mesage created for MDPS
 
   // 1 allows the message through
@@ -237,28 +238,24 @@ static int hyundai_community_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_f
   // forward cam to ccan and viceversa, except lkas cmd
   if (!relay_malfunction) {
     if (bus_num == 0) {
-      if (!OP_CLU_live_bus1 || addr != 1265 || !HKG_forward_bus1) {
+      if (!(OP_CLU_live_bus1 || OP_CLU_live_bus2) || addr != 1265) {
         if (!OP_MDPS_live || addr != 593) {
-          if (!OP_EMS_live || addr != 790) {
-            if (!OP_CLU_live_bus2 || addr != 1265 || HKG_scc_bus != 2) {
-              bus_fwd = HKG_forward_bus1 ? 12 : 2; // default forwarding if all prev connditions are true (not addresses that OP is sending)
-            } else {
-              if (HKG_forward_bus1) {bus_fwd = 1;} // EON create CLU12 for SCC bus2
-              OP_CLU_live_bus2 -= 1;
-            }
+          if (!(OP_EMS_live_bus1 || OP_EMS_live_bus2) || addr != 790) {
+            bus_fwd = HKG_forward_bus1 ? 12 : 2; // default forwarding if all prev connditions are true (not addresses that OP is sending)
           } else {
-            bus_fwd = 2;  // EON create EMS11 for MDPS
-            OP_EMS_live -= 1;
+            if (!(OP_EMS_live_bus1 && OP_EMS_live_bus2)) { // EON create EMS11 for MDPS or SCC
+              if (OP_EMS_live_bus1) {bus_fwd = 2; OP_EMS_live_bus1--;} else {bus_fwd = fwd_to_bus1; OP_EMS_live_bus2--;}
+            } else { OP_EMS_live_bus1--; OP_EMS_live_bus2--;}
           }
         } else {
           bus_fwd = fwd_to_bus1;  // EON create MDPS for LKAS
           OP_MDPS_live -= 1;
         }
       } else {
-        if (!OP_CLU_live_bus2 || HKG_scc_bus != 2) {
-          bus_fwd = 2; // EON create CLU12 for MDPS
-        }
-        OP_CLU_live_bus1 -= 1;
+        if (!(OP_CLU_live_bus1 || OP_CLU_live_bus2)) {
+          if (OP_CLU_live_bus1) { bus_fwd = 2; OP_CLU_live_bus1--;} // EON create CLU12 for bus1
+          else {bus_fwd = fwd_to_bus1; OP_CLU_live_bus2--;} // EON create CLU12 for bus2
+        } else {OP_CLU_live_bus1--; OP_CLU_live_bus2--;} // EON create CLU12 for bus1 & bus2
       }
     }
     if (bus_num == 1 && HKG_forward_bus1) {
