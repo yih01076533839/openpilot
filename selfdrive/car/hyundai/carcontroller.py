@@ -10,7 +10,7 @@ from opendbc.can.packer import CANPacker
 from selfdrive.config import Conversions as CV
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
-min_set_speed = 30 if not CS.is_set_speed_in_mph else 30 * KPH_TO_MPH
+min_set_speed_kmh = 30
 # Accel limits
 ACCEL_HYST_GAP = 0.02  # don't change accel command for small oscilalitons within this value
 ACCEL_MAX = 1.5  # 1.5 m/s2
