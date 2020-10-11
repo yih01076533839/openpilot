@@ -10,7 +10,10 @@ from opendbc.can.packer import CANPacker
 from selfdrive.config import Conversions as CV
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
-min_set_speed_kmh = 30
+min_set_speed_kph = 30
+min_set_speed_mph = 19
+enabled_speed_kph = 60
+enabled_speed_mph = 38
 # Accel limits
 ACCEL_HYST_GAP = 0.02  # don't change accel command for small oscilalitons within this value
 ACCEL_MAX = 1.5  # 1.5 m/s2
@@ -142,20 +145,17 @@ class CarController():
                         self.lkas_button_on)
 
     clu11_speed = CS.clu11["CF_Clu_Vanz"]
-    enabled_speed = 38 if CS.is_set_speed_in_mph  else 60
+    enabled_speed = enable_speed_mph if CS.is_set_speed_in_mph  else enabled_speed_kph
+    set_speed = set_speed_mph if CS.is_set_speed_in_mph else set_speed_kph
+    min_set_speed = min_set_speed_mph if CS.is_set_speed_in_mph else min_set_speed_kph
     if clu11_speed > enabled_speed or not lkas_active:
       enabled_speed = clu11_speed
-    set_speed_kmh = set_speed * CV.MS_TO_KPH
-    if not(min_set_speed_kmh < set_speed_kmh < 180):
-      set_speed_kmh = min_set_speed_kmh
-    set_speed = set_speed_kmh if not CS.is_set_speed_in_mph else \
-                set_speed_kmh * KPH_TO_MPH
+    if not(min_set_speed < set_speed < (min_set_speed * 6)):
+      set_speed = min_set_speed
 
     if frame == 0: # initialize counts from last received count signals
       self.lkas11_cnt = CS.lkas11["CF_Lkas_MsgCount"]
       self.scc12_cnt = CS.scc12["CR_VSM_Alive"] + 1 if not CS.no_radar else 0
-      min_set_speed =  min_set_speed_kmh if not CS.is_set_speed_in_mph else \
-                min_set_speed_kmh * KPH_TO_MPH
 
       #TODO: fix this
       # self.prev_scc_cnt = CS.scc11["AliveCounterACC"]
