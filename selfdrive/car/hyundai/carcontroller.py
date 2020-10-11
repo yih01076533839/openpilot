@@ -154,6 +154,8 @@ class CarController():
     if frame == 0: # initialize counts from last received count signals
       self.lkas11_cnt = CS.lkas11["CF_Lkas_MsgCount"]
       self.scc12_cnt = CS.scc12["CR_VSM_Alive"] + 1 if not CS.no_radar else 0
+      min_set_speed =  min_set_speed_kmh if not CS.is_set_speed_in_mph else \
+                min_set_speed_kmh * KPH_TO_MPH
 
       #TODO: fix this
       # self.prev_scc_cnt = CS.scc11["AliveCounterACC"]
