@@ -15,4 +15,3 @@ if [ -z "$OPENPILOT_ENV" ]; then
   export OPENPILOT_ENV=1
   export PARAMS_PATH=persist/params
 fi
-

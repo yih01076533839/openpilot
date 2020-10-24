@@ -92,6 +92,11 @@ routes = {
     'carFingerprint': GM.BUICK_REGAL,
     'enableCamera': True,
   },
+  "0e7a2ba168465df5|2020-10-18--14-14-22": {
+    'carFingerprint': HONDA.ACURA_RDX_3G,
+    'enableCamera': True,
+    'fingerprintSource': 'fixed',
+  },
   "a74b011b32b51b56|2020-07-26--17-09-36": {
     'carFingerprint': HONDA.CIVIC,
     'enableCamera': True,
@@ -166,6 +171,10 @@ routes = {
   },
   "0a78dfbacc8504ef|2020-03-04--13-29-55": {
     'carFingerprint': HONDA.CIVIC_BOSCH,
+    'enableCamera': True,
+  },
+  "f34a60d68d83b1e5|2020-10-06--14-35-55": {
+    'carFingerprint': HONDA.ACURA_RDX,
     'enableCamera': True,
   },
   "6fe86b4e410e4c37|2020-07-22--16-27-13": {
@@ -433,6 +442,14 @@ routes = {
     'carFingerprint': MAZDA.CX5,
     'enableCamera': True,
   },
+  "10b5a4b380434151|2020-08-26--17-11-45": {
+    'carFingerprint': MAZDA.CX9,
+    'enableCamera': True,
+  },
+  "74f1038827005090|2020-08-26--20-05-50": {
+    'carFingerprint': MAZDA.Mazda3,
+    'enableCamera': True,
+  },
 }
 
 passive_routes: List[str] = [
@@ -442,8 +459,12 @@ forced_dashcam_routes = [
   # Ford fusion
   "f1b4c567731f4a1b|2018-04-18--11-29-37",
   "f1b4c567731f4a1b|2018-04-30--10-15-35",
-  # Mazda
+  # Mazda CX5
   "32a319f057902bb3|2020-04-27--15-18-58",
+  # Mazda CX9
+  "10b5a4b380434151|2020-08-26--17-11-45",
+  # Mazda3
+  "74f1038827005090|2020-08-26--20-05-50",
 ]
 
 # TODO: add routes for these cars
@@ -456,7 +477,6 @@ non_tested_cars = [
   GM.CADILLAC_ATS,
   GM.HOLDEN_ASTRA,
   GM.MALIBU,
-  HONDA.ACURA_RDX,
   HONDA.CRV,
   HONDA.RIDGELINE,
   HYUNDAI.ELANTRA,

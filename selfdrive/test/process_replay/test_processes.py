@@ -6,8 +6,7 @@ from typing import Any
 
 from selfdrive.car.car_helpers import interface_names
 from selfdrive.test.process_replay.compare_logs import compare_logs
-from selfdrive.test.process_replay.process_replay import (CONFIGS,
-                                                          replay_process)
+from selfdrive.test.process_replay.process_replay import CONFIGS, replay_process
 from tools.lib.logreader import LogReader
 
 INJECT_MODEL = 0
@@ -16,6 +15,8 @@ segments = [
   ("HONDA", "0375fdf7b1ce594d|2019-06-13--08-32-25--3"),      # HONDA.ACCORD
   ("HONDA", "99c94dc769b5d96e|2019-08-03--14-19-59--2"),      # HONDA.CIVIC
   ("TOYOTA", "77611a1fac303767|2020-02-29--13-29-33--3"),     # TOYOTA.COROLLA_TSS2
+  ("TOYOTA", "b14c5b4742e6fc85|2020-10-14--11-04-47--4"),     # TOYOTA.RAV4  (LQR)
+  ("TOYOTA", "0982d79ebb0de295|2020-10-18--19-11-36--5"),     # TOYOTA.PRIUS (INDI)
   ("GM", "7cc2a8365b4dd8a9|2018-12-02--12-10-44--2"),         # GM.ACADIA
   ("CHRYSLER", "b6849f5cf2c926b1|2020-02-28--07-29-48--13"),  # CHRYSLER.PACIFICA
   ("HYUNDAI", "5b7c365c50084530|2020-04-15--16-13-24--3"),    # HYUNDAI.SONATA
