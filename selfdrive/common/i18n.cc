@@ -26,8 +26,7 @@ std::string geteonlocale(){
 
 void i18n_init(){
 
-  setlocale (LC_ALL, geteonlocale().c_str());
-  setlocale (LC_MESSAGES, geteonlocale().c_str());
+  setlocale (LC_ALL, "");
   bindtextdomain ("messages", "/data/openpilot/selfdrive/assets/locales");
   textdomain ("messages");
   return;
