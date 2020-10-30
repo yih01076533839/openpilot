@@ -157,6 +157,7 @@ from selfdrive.version import version, dirty
 from selfdrive.loggerd.config import ROOT
 from selfdrive.launcher import launcher
 from common.apk import update_apks, pm_apply_packages, start_offroad
+from common.hardware_android import getprop
 
 ThermalStatus = cereal.log.ThermalData.ThermalStatus
 
@@ -576,6 +577,7 @@ def main():
 
   if ANDROID:
     update_apks()
+    params.put("AndroidLocal", getprop('ro.product.locale').encode('utf8'))
   manager_init()
   manager_prepare(spinner)
   spinner.close()

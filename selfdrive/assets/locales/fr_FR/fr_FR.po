@@ -1,0 +1,604 @@
+# French translations for xx package.
+# Copyright (C) 2020 THE xx'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the xx package.
+# xx979xx <xx979xx@gmail.com>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: xx 979xx\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-10-28 05:28+0300\n"
+"PO-Revision-Date: 2020-10-30 16:40+0300\n"
+"Last-Translator: xx979xx <xx979xx@gmail.com>\n"
+"Language-Team: French\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: openpilot/selfdrive/ui/paint.cc:723
+msgid "../assets/fonts/opensans_bold.ttf"
+msgstr "../assets/fonts/opensans_bold.ttf"
+
+#: openpilot/selfdrive/ui/paint.cc:719
+msgid "../assets/fonts/opensans_regular.ttf"
+msgstr "../assets/fonts/opensans_regular.ttf"
+
+#: openpilot/selfdrive/ui/paint.cc:721
+msgid "../assets/fonts/opensans_semibold.ttf"
+msgstr "../assets/fonts/opensans_semibold.ttf"
+
+#: openpilot/selfdrive/controls/lib/events.py:227
+#: openpilot/selfdrive/controls/lib/events.py:235
+#: openpilot/selfdrive/controls/lib/events.py:243
+#: openpilot/selfdrive/controls/lib/events.py:251
+msgid "Always keep hands on wheel and eyes on road"
+msgstr "Gardez toujours les mains sur le volant et les yeux sur la route"
+
+#: openpilot/selfdrive/controls/lib/events.py:753
+msgid "An Update Check Is Required to Engage"
+msgstr "Une vérification de mise à jour est requise pour s'engager"
+
+#: openpilot/selfdrive/controls/lib/events.py:300
+#: openpilot/selfdrive/controls/lib/events.py:308
+#: openpilot/selfdrive/controls/lib/events.py:316
+msgid "BRAKE!"
+msgstr "FREIN!"
+
+#: openpilot/selfdrive/controls/lib/events.py:226
+msgid "Be ready to take over at any time"
+msgstr "Soyez prêt à prendre le relais à tout moment"
+
+#: openpilot/selfdrive/controls/lib/events.py:496
+msgid "Brake Hold Active"
+msgstr "Maintien du frein actif"
+
+#: openpilot/selfdrive/controls/lib/events.py:667
+#: openpilot/selfdrive/controls/lib/events.py:669
+#: openpilot/selfdrive/controls/lib/events.py:673
+msgid "CAN Error: Check Connections"
+msgstr "Erreur CAN: vérifier les connexions"
+
+#: openpilot/selfdrive/controls/lib/events.py:406
+msgid "CHECK DRIVER FACE VISIBILITY"
+msgstr "VÉRIFIER LA VISIBILITÉ VISAGE DU CONDUCTEUR"
+
+#: openpilot/selfdrive/ui/sidebar.cc:150
+msgid ""
+"CONNECT\n"
+"ERROR"
+msgstr ""
+"CONNECTER\n"
+"ERREUR"
+
+#: openpilot/selfdrive/ui/sidebar.cc:152
+msgid ""
+"CONNECT\n"
+"OFFLINE"
+msgstr ""
+"CONNECTER\n"
+"HORS LIGNE"
+
+#: openpilot/selfdrive/ui/sidebar.cc:151
+msgid ""
+"CONNECT\n"
+"ONLINE"
+msgstr ""
+"CONNECTER\n"
+"EN LIGNE"
+
+#: openpilot/selfdrive/controls/lib/events.py:582
+msgid "Calibration Invalid"
+msgstr "Calibration invalide"
+
+#: openpilot/selfdrive/controls/lib/events.py:583
+#: openpilot/selfdrive/controls/lib/events.py:584
+msgid "Calibration Invalid: Remount Device & Recalibrate"
+msgstr "Calibration invalide: remonter l'appareil et recalibrer"
+
+#: openpilot/selfdrive/controls/lib/events.py:589
+#: openpilot/selfdrive/controls/lib/events.py:590
+msgid "Calibration in Progress"
+msgstr "Calibration en cours"
+
+#: openpilot/selfdrive/controls/lib/events.py:192
+#, python-format
+msgid "Calibration in Progress: %d%%"
+msgstr "Étalonnage en cours:% d %%"
+
+#: openpilot/selfdrive/controls/lib/events.py:450
+msgid "Car Detected in Blindspot"
+msgstr "Voiture détectée dans l'angle mort"
+
+#: openpilot/selfdrive/controls/lib/events.py:293
+msgid "Car Unrecognized"
+msgstr "Voiture non reconnue"
+
+#: openpilot/selfdrive/controls/lib/events.py:458
+msgid "Changing Lane"
+msgstr "Changer de voie"
+
+#: openpilot/selfdrive/controls/lib/events.py:201
+msgid "Check GPS antenna placement"
+msgstr "Vérifiez l'emplacement de l'antenne GPS"
+
+#: openpilot/selfdrive/controls/lib/events.py:717
+msgid "Check Hardware"
+msgstr "Vérifier le matériel"
+
+#: openpilot/selfdrive/controls/lib/events.py:614
+#: openpilot/selfdrive/controls/lib/events.py:615
+msgid "Communication Issue between Processes"
+msgstr "Problème de communication entre les processus"
+
+#: openpilot/selfdrive/controls/lib/events.py:284
+msgid "Community Feature Detected"
+msgstr "Fonctionnalité communautaire détectée"
+
+#: openpilot/selfdrive/controls/lib/events.py:753
+#: openpilot/selfdrive/controls/lib/events.py:754
+msgid "Connect to Internet"
+msgstr "Connectez-vous à Internet"
+
+#: openpilot/selfdrive/controls/lib/events.py:473
+msgid "Contact Support"
+msgstr "Contactez le support"
+
+#: openpilot/selfdrive/controls/lib/events.py:658
+#: openpilot/selfdrive/controls/lib/events.py:659
+msgid "Controls Failed"
+msgstr "Les contrôles ont échoué"
+
+#: openpilot/selfdrive/controls/lib/events.py:663
+msgid "Controls Mismatch"
+msgstr "Contrôles des incompatibilités"
+
+#. car is started, but controls is lagging or died
+#: openpilot/selfdrive/ui/ui.cc:267 openpilot/selfdrive/ui/ui.cc:273
+msgid "Controls Unresponsive"
+msgstr "Les commandes ne répondent pas"
+
+#: openpilot/selfdrive/controls/lib/events.py:687
+#: openpilot/selfdrive/controls/lib/events.py:693
+#: openpilot/selfdrive/controls/lib/events.py:764
+msgid "Cruise Fault: Restart the Car"
+msgstr "Défaut de croisière: redémarrer la voiture"
+
+#: openpilot/selfdrive/controls/lib/events.py:689
+#: openpilot/selfdrive/controls/lib/events.py:760
+msgid "Cruise Fault: Restart the car to engage"
+msgstr "Défaut de croisière: redémarrez la voiture pour s'engager"
+
+#: openpilot/selfdrive/controls/lib/events.py:707
+msgid "Cruise Is Off"
+msgstr "La croisière est désactivée"
+
+#: openpilot/selfdrive/controls/lib/events.py:206
+msgid "Cruise Mode Disabled"
+msgstr "Mode croisière désactivé"
+
+#: openpilot/selfdrive/controls/lib/events.py:218
+msgid "DEBUG ALERT"
+msgstr "ALERTE DE DEBUG"
+
+#: openpilot/selfdrive/controls/lib/events.py:374
+#: openpilot/selfdrive/controls/lib/events.py:398
+msgid "DISENGAGE IMMEDIATELY"
+msgstr "DÉSENGAGER IMMÉDIATEMENT"
+
+#: openpilot/selfdrive/controls/lib/events.py:292
+msgid "Dashcam Mode"
+msgstr "Mode Dashcam"
+
+#: openpilot/selfdrive/controls/lib/events.py:242
+msgid "Dashcam mode"
+msgstr "Mode Dashcam"
+
+#: openpilot/selfdrive/controls/lib/events.py:250
+msgid "Dashcam mode for unsupported car"
+msgstr "Mode Dashcam pour voiture non prise en charge"
+
+#: openpilot/selfdrive/controls/lib/events.py:646
+#: openpilot/selfdrive/controls/lib/events.py:647
+msgid "Device Fell Off Mount"
+msgstr "L'appareil est tombé du support"
+
+#: openpilot/selfdrive/controls/lib/events.py:563
+msgid "Distraction Level Too High"
+msgstr "Niveau de distraction trop élevé"
+
+#: openpilot/selfdrive/controls/lib/events.py:594
+#: openpilot/selfdrive/controls/lib/events.py:595
+msgid "Door Open"
+msgstr "Porte ouverte"
+
+#: openpilot/selfdrive/controls/lib/events.py:193
+#, python-brace-format
+msgid "Drive Above {speed} {unit}"
+msgstr "Conduire au-dessus de {speed} {unit}"
+
+#: openpilot/selfdrive/controls/lib/events.py:367
+#: openpilot/selfdrive/controls/lib/events.py:375
+msgid "Driver Distracted"
+msgstr "Conducteur distrait"
+
+#: openpilot/selfdrive/controls/lib/events.py:407
+msgid "Driver Monitoring Uncertain"
+msgstr "Surveillance du conducteur incertaine"
+
+#: openpilot/selfdrive/controls/lib/events.py:391
+#: openpilot/selfdrive/controls/lib/events.py:399
+msgid "Driver Unresponsive"
+msgstr "Le conducteur ne répond pas"
+
+#: openpilot/selfdrive/controls/lib/events.py:636
+#: openpilot/selfdrive/controls/lib/events.py:637
+msgid "Driving model lagging"
+msgstr "Modèle de conduite à la traîne"
+
+#: openpilot/selfdrive/controls/lib/events.py:604
+#: openpilot/selfdrive/controls/lib/events.py:605
+msgid "ESP Off"
+msgstr "ESP désactivé"
+
+#: openpilot/selfdrive/controls/lib/events.py:517
+msgid "Enable Adaptive Cruise"
+msgstr "Activer la croisière adaptative"
+
+#: openpilot/selfdrive/controls/lib/events.py:285
+msgid "Enable Community Features in Developer Settings"
+msgstr "Activer les fonctionnalités de la communauté dans les paramètres du développeur"
+
+#: openpilot/selfdrive/controls/lib/events.py:473
+msgid "Fan Malfunction"
+msgstr "Dysfonctionnement du ventilateur"
+
+#: openpilot/selfdrive/controls/lib/events.py:577
+#: openpilot/selfdrive/controls/lib/events.py:578
+msgid "Gear not D"
+msgstr "Gear pas D"
+
+#: openpilot/selfdrive/controls/lib/events.py:716
+#: openpilot/selfdrive/controls/lib/events.py:717
+#: openpilot/selfdrive/controls/lib/events.py:718
+msgid "Harness Malfunction"
+msgstr "Dysfonctionnement du harnais"
+
+#: openpilot/selfdrive/controls/lib/events.py:201
+msgid "If sky is visible, contact support"
+msgstr "Si le ciel est visible, contactez l'assistance"
+
+#: openpilot/selfdrive/controls/lib/events.py:366
+msgid "KEEP EYES ON ROAD"
+msgstr "GARDER LES YEUX SUR LA ROUTE"
+
+#: openpilot/selfdrive/controls/lib/events.py:358
+msgid "KEEP EYES ON ROAD: Driver Distracted"
+msgstr "GARDER LES YEUX SUR LA ROUTE: le conducteur est distrait"
+
+#: openpilot/selfdrive/controls/lib/events.py:677
+#: openpilot/selfdrive/controls/lib/events.py:683
+msgid "LKAS Fault: Restart the Car"
+msgstr "Défaut LKAS: redémarrer la voiture"
+
+#: openpilot/selfdrive/controls/lib/events.py:679
+msgid "LKAS Fault: Restart the car to engage"
+msgstr "Défaut LKAS: Redémarrez la voiture pour s'engager"
+
+#: openpilot/selfdrive/controls/lib/events.py:325
+msgid "Lane Departure Detected"
+msgstr "Départ de voie détecté"
+
+#: openpilot/selfdrive/controls/lib/events.py:609
+#: openpilot/selfdrive/controls/lib/events.py:610
+msgid "Low Battery"
+msgstr "Batterie faible"
+
+#: openpilot/selfdrive/controls/lib/events.py:652
+msgid "Low Memory"
+msgstr "Peu de mémoire"
+
+#: openpilot/selfdrive/controls/lib/events.py:651
+#: openpilot/selfdrive/controls/lib/events.py:653
+msgid "Low Memory: Reboot Your Device"
+msgstr "Mémoire faible: redémarrez votre appareil"
+
+#: openpilot/selfdrive/controls/lib/events.py:208
+msgid "Main Switch Off"
+msgstr "Interrupteur principal désactivé"
+
+#: openpilot/selfdrive/controls/lib/events.py:641
+#: openpilot/selfdrive/controls/lib/events.py:642
+msgid "Model Output Uncertain"
+msgstr "Sortie du modèle incertaine"
+
+#: openpilot/selfdrive/controls/lib/events.py:435
+#: openpilot/selfdrive/controls/lib/events.py:443
+#: openpilot/selfdrive/controls/lib/events.py:451
+#: openpilot/selfdrive/controls/lib/events.py:459
+msgid "Monitor Other Vehicles"
+msgstr "Surveiller d'autres véhicules"
+
+#: openpilot/selfdrive/ui/sidebar.cc:135
+msgid ""
+"NO\n"
+"VEHICLE"
+msgstr ""
+"Non"
+"VÉHICULE"
+
+#: openpilot/selfdrive/controls/lib/events.py:727
+msgid "No Close Lead Car"
+msgstr "Pas de voiture de tête rapprochée"
+
+#: openpilot/selfdrive/controls/lib/events.py:546
+#: openpilot/selfdrive/controls/lib/events.py:550
+msgid "No Data from Device Sensors"
+msgstr "Aucune donnée des capteurs de périphérique"
+
+#: openpilot/selfdrive/controls/lib/events.py:724
+msgid "No close lead car"
+msgstr "Pas de voiture de tête proche"
+
+#: openpilot/selfdrive/controls/lib/events.py:532
+msgid "Out of Storage"
+msgstr "Hors de stockage"
+
+#: openpilot/selfdrive/controls/lib/events.py:536
+msgid "Out of Storage Space"
+msgstr "Espace de stockage insuffisant"
+
+#: openpilot/selfdrive/controls/lib/events.py:501
+msgid "Park Brake Engaged"
+msgstr "Frein de stationnement engagé"
+
+#: openpilot/selfdrive/controls/lib/events.py:506
+msgid "Pedal Pressed During Attempt"
+msgstr "Pédale enfoncée pendant la tentative"
+
+#: openpilot/selfdrive/controls/lib/events.py:711
+#: openpilot/selfdrive/controls/lib/events.py:712
+msgid "Planner Solution Error"
+msgstr "Erreur de solution du planificateur"
+
+#: openpilot/selfdrive/controls/lib/events.py:200
+msgid "Poor GPS reception"
+msgstr "Mauvaise réception GPS"
+
+#: openpilot/selfdrive/controls/lib/events.py:423
+msgid "Press Resume to Move"
+msgstr "Appuyez sur Reprendre pour déplacer"
+
+#: openpilot/selfdrive/controls/lib/events.py:620
+#: openpilot/selfdrive/controls/lib/events.py:621
+msgid "Radar Communication Issue"
+msgstr "Problème de communication radar"
+
+#: openpilot/selfdrive/controls/lib/events.py:626
+#: openpilot/selfdrive/controls/lib/events.py:627
+#: openpilot/selfdrive/controls/lib/events.py:631
+#: openpilot/selfdrive/controls/lib/events.py:632
+msgid "Radar Error: Restart the Car"
+msgstr "Erreur radar: redémarrez la voiture"
+
+#: openpilot/selfdrive/controls/lib/events.py:547
+#: openpilot/selfdrive/controls/lib/events.py:558
+#: openpilot/selfdrive/controls/lib/events.py:652
+msgid "Reboot your Device"
+msgstr "Redémarrez votre appareil"
+
+#: openpilot/selfdrive/controls/lib/events.py:582
+msgid "Remount Device and Recalibrate"
+msgstr "Remonter l'appareil et recalibrer"
+
+#: openpilot/selfdrive/controls/lib/events.py:415
+msgid "Resume Driving Manually"
+msgstr "Reprendre la conduite manuellement"
+
+#: openpilot/selfdrive/controls/lib/events.py:698
+msgid ""
+"Reverse\n"
+"Gear"
+msgstr ""
+"Inverser\n"
+"Équipement"
+
+#: openpilot/selfdrive/controls/lib/events.py:702
+#: openpilot/selfdrive/controls/lib/events.py:703
+msgid "Reverse Gear"
+msgstr "Marche arrière"
+
+#: openpilot/selfdrive/controls/lib/events.py:317
+msgid "Risk of Collision"
+msgstr "Risque de collision"
+
+#: openpilot/selfdrive/controls/lib/events.py:422
+msgid "STOPPED"
+msgstr "ARRÊTÉ"
+
+#: openpilot/selfdrive/controls/lib/events.py:599
+#: openpilot/selfdrive/controls/lib/events.py:600
+msgid "Seatbelt Unlatched"
+msgstr "Ceinture de sécurité non verrouillée"
+
+#: openpilot/selfdrive/controls/lib/events.py:746
+msgid "Slow down to engage"
+msgstr "Ralentissez pour vous engager"
+
+#: openpilot/selfdrive/controls/lib/events.py:741
+msgid "Slow down to resume operation"
+msgstr "Ralentissez pour reprendre le fonctionnement"
+
+#: openpilot/selfdrive/controls/lib/events.py:558
+#: openpilot/selfdrive/controls/lib/events.py:559
+msgid "Speaker not found"
+msgstr "Haut-parleur introuvable"
+
+#: openpilot/selfdrive/controls/lib/events.py:740
+#: openpilot/selfdrive/controls/lib/events.py:745
+msgid "Speed Too High"
+msgstr "Vitesse trop élevée"
+
+#: openpilot/selfdrive/controls/lib/events.py:541
+msgid "Speed Too Low"
+msgstr "Vitesse trop basse"
+
+#: openpilot/selfdrive/controls/lib/events.py:733
+msgid "Speed too low"
+msgstr "Vitesse trop basse"
+
+#: openpilot/selfdrive/controls/lib/events.py:434
+msgid "Steer Left to Start Lane Change"
+msgstr "Tourner à gauche pour commencer le changement de voie"
+
+#: openpilot/selfdrive/controls/lib/events.py:442
+msgid "Steer Right to Start Lane Change"
+msgstr "Tourner à droite pour commencer le changement de voie"
+
+#: openpilot/selfdrive/controls/lib/events.py:184
+#, python-brace-format
+msgid "Steer Unavailable Below {speed} {unit}"
+msgstr "Steer indisponible en dessous de {speed} {unit}"
+
+#: openpilot/selfdrive/controls/lib/events.py:351
+#: openpilot/selfdrive/controls/lib/events.py:523
+#: openpilot/selfdrive/controls/lib/events.py:526
+msgid "Steering Temporarily Unavailable"
+msgstr "Direction temporairement indisponible"
+
+#: openpilot/selfdrive/controls/lib/events.py:301
+msgid "Stock AEB: Risk of Collision"
+msgstr "Stock AEB: risque de collision"
+
+#: openpilot/selfdrive/controls/lib/events.py:309
+msgid "Stock FCW: Risk of Collision"
+msgstr "Stock FCW: Risque de collision"
+
+#: openpilot/selfdrive/controls/lib/events.py:275
+msgid "Stock LKAS is turned on"
+msgstr "Stock LKAS est activé"
+
+#: openpilot/selfdrive/controls/lib/events.py:568
+#: openpilot/selfdrive/controls/lib/events.py:572
+#: openpilot/selfdrive/controls/lib/events.py:573
+msgid "System Overheated"
+msgstr "Système surchauffé"
+
+#: openpilot/selfdrive/controls/lib/events.py:183
+#: openpilot/selfdrive/controls/lib/events.py:324
+#: openpilot/selfdrive/controls/lib/events.py:350
+#: openpilot/selfdrive/controls/lib/events.py:414
+#: openpilot/selfdrive/controls/lib/events.py:466
+#: openpilot/selfdrive/controls/lib/events.py:522
+msgid "TAKE CONTROL"
+msgstr "PRENDRE LE CONTRÔLE"
+
+#: openpilot/selfdrive/controls/lib/events.py:151
+#: openpilot/selfdrive/controls/lib/events.py:158
+#: openpilot/selfdrive/ui/ui.cc:272
+msgid "TAKE CONTROL IMMEDIATELY"
+msgstr "PRENEZ LE CONTRÔLE IMMÉDIATEMENT"
+
+#: openpilot/selfdrive/ui/sidebar.cc:125
+msgid "TEMP"
+msgstr "TEMP"
+
+#: openpilot/selfdrive/controls/lib/events.py:390
+msgid "TOUCH STEERING WHEEL"
+msgstr "VOLANT TACTILE"
+
+#: openpilot/selfdrive/controls/lib/events.py:382
+msgid "TOUCH STEERING WHEEL: No Face Detected"
+msgstr "VOLANT TACTILE: Aucun visage détecté"
+
+#: openpilot/selfdrive/controls/lib/events.py:467
+msgid "Turn Exceeds Steering Limit"
+msgstr "Le virage dépasse la limite de direction"
+
+#: openpilot/selfdrive/controls/lib/events.py:276
+msgid "Turn off stock LKAS to engage"
+msgstr "Éteignez le stock LKAS pour vous engager"
+
+#: openpilot/selfdrive/controls/lib/events.py:258
+msgid "Unsupported Giraffe Configuration"
+msgstr "Configuration girafe non prise en charge"
+
+#: openpilot/selfdrive/controls/lib/events.py:270
+msgid "Unsupported Hardware"
+msgstr "Matériel non pris en charge"
+
+#: openpilot/selfdrive/controls/lib/events.py:267
+msgid "Upgrade to comma two or black panda"
+msgstr "Passez à la virgule deux ou au panda noir"
+
+#: openpilot/selfdrive/ui/sidebar.cc:142
+msgid ""
+"VEHICLE\n"
+"GOOD GPS"
+msgstr ""
+"VÉHICULE\n"
+"BON GPS"
+
+#: openpilot/selfdrive/ui/sidebar.cc:139
+msgid ""
+"VEHICLE\n"
+"NO GPS"
+msgstr ""
+"VÉHICULE\n"
+"PAS DE GPS"
+
+#: openpilot/selfdrive/ui/sidebar.cc:132
+msgid ""
+"VEHICLE\n"
+"ONLINE"
+msgstr ""
+"VÉHICULE\n"
+"EN LIGNE"
+
+#: openpilot/selfdrive/controls/lib/events.py:342
+msgid "Vehicle Parameter Identification Failed"
+msgstr "Échec de l'identification des paramètres du véhicule"
+
+#: openpilot/selfdrive/controls/lib/events.py:259
+msgid "Visit comma.ai/tg"
+msgstr "Visitez comma.ai/tg"
+
+#: openpilot/selfdrive/controls/lib/events.py:234
+msgid "WARNING: This branch is not tested"
+msgstr "AVERTISSEMENT: cette branche n'est pas testée"
+
+#: openpilot/selfdrive/ui/ui.cc:263
+msgid "Waiting for controls to start"
+msgstr "En attente du démarrage des contrôles"
+
+#: openpilot/selfdrive/controls/lib/events.py:266
+msgid "White Panda No Longer Supported"
+msgstr "Le panda blanc n'est plus pris en charge"
+
+#: openpilot/selfdrive/controls/lib/events.py:181
+#: openpilot/selfdrive/controls/lib/events.py:190
+#: openpilot/selfdrive/ui/paint.cc:429
+msgid "km/h"
+msgstr "km / h"
+
+#: openpilot/selfdrive/controls/lib/events.py:181
+#: openpilot/selfdrive/controls/lib/events.py:190
+#: openpilot/selfdrive/ui/paint.cc:429
+msgid "mph"
+msgstr "mph"
+
+#: openpilot/selfdrive/controls/lib/events.py:723
+#: openpilot/selfdrive/controls/lib/events.py:732
+msgid "openpilot Canceled"
+msgstr "openpilot annulé"
+
+#. car is started, but controlsState hasn't been seen at all
+#: openpilot/selfdrive/controls/lib/events.py:144
+#: openpilot/selfdrive/ui/ui.cc:262
+msgid "openpilot Unavailable"
+msgstr "openpilot indisponible"
+
+#: openpilot/selfdrive/controls/lib/events.py:334
+msgid "openpilot will not brake while gas pressed"
+msgstr "openpilot ne freine pas tant que le gaz est pressé"

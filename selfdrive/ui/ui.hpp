@@ -26,6 +26,7 @@
 #include "common/modeldata.h"
 #include "common/params.h"
 #include "sound.hpp"
+#include "common/i18n.h"
 
 #define COLOR_BLACK nvgRGBA(0, 0, 0, 255)
 #define COLOR_BLACK_ALPHA(x) nvgRGBA(0, 0, 0, x)
