@@ -577,7 +577,7 @@ def main():
 
   if ANDROID:
     update_apks()
-    params.put("AndroidLocal", getprop('ro.product.locale').encode('utf8'))
+    params.put("AndroidLocal", getprop('ro.product.locale').replace('-', '_').encode('utf8'))
   manager_init()
   manager_prepare(spinner)
   spinner.close()
