@@ -577,7 +577,10 @@ def main():
 
   if ANDROID:
     update_apks()
-    params.put("AndroidLocal", getprop('ro.product.locale').replace('-', '_').encode('utf8'))
+    locale = getprop('persist.sys.locale').replace('-', '_')
+    params.put("AndroidLocale", locale.encode('utf8'))
+    putenv(f'LANGUAGE={locale}.UTF-8');
+
   manager_init()
   manager_prepare(spinner)
   spinner.close()
